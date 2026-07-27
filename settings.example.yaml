@@ -1,3 +1,9 @@
+search:
+  keyword: "카페 리뷰"
+  max_pages: 30
+  top_n: 10
+  kakao_search_radius: 5000
+
 naver:
   api_url: "https://example.com/replace-with-real-endpoint"
   headers:
