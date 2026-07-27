@@ -18,22 +18,26 @@ RESPONSE_SCHEMA = {
 }
 
 PROMPT_TEMPLATE = """\
-아래는 네이버 블로그 검색 결과 제목 목록입니다.
-각 제목에서 언급된 카페/베이커리 등 특정 업체의 상호명을 추출하세요.
+아래는 네이버 블로그 검색 결과 목록입니다 (제목 + 본문 일부).
+각 항목에서 언급된 카페/베이커리 등 특정 업체의 상호명을 추출하세요.
 
 규칙:
 - 상호명은 정식 브랜드명으로 통일하세요 (예: "온더브레드 복정점", "온더브레드복정" -> "온더브레드").
-- 지역명, 역 이름, 맛집/카페 같은 일반 단어만 있고 구체적인 상호명이 없으면 그 제목은 결과에서 제외하세요.
-- 상호명이 없는 제목(예: 주차장 안내, 교회 등 카페와 무관한 내용)은 제외하세요.
+- 제목에 없어도 본문에 구체적인 상호명이 있으면 추출하세요.
+- 지역명, 역 이름, 맛집/카페 같은 일반 단어만 있고 구체적인 상호명이 없으면 그 항목은 결과에서 제외하세요.
+- 상호명이 없는 항목(예: 주차장 안내, 교회 등 카페와 무관한 내용)은 제외하세요.
 
-제목 목록:
-{titles}
+목록:
+{items}
 """
 
 
 def _build_prompt(posts):
-    numbered = "\n".join(f"{i}. {post['title']}" for i, post in enumerate(posts, start=1))
-    return PROMPT_TEMPLATE.format(titles=numbered)
+    numbered = "\n".join(
+        f"{i}. 제목: {post['title']}\n   본문: {post['contents']}"
+        for i, post in enumerate(posts, start=1)
+    )
+    return PROMPT_TEMPLATE.format(items=numbered)
 
 
 def extract_cafe_names(posts):
