@@ -1,19 +1,20 @@
 import requests
 
-from config import (
+from blog_place_collector.config import (
     AREA_KEYWORD,
+    KAKAO_FAVORITE_ADD_URL,
     KAKAO_LOCAL_SEARCH_URL,
     KAKAO_SEARCH_RADIUS,
     KAKAO_TRANSCOORD_URL,
     kakao_auth_headers,
+    kakao_map_headers,
 )
 
 _area_anchor = None
 
 
 def _get_area_anchor():
-    """검색 지역(AREA_KEYWORD)의 대표 좌표를 구해서, 동명이인 상호 중
-    이 지역에 가까운 결과를 우선하도록 하는 기준점으로 씁니다."""
+    """지역 대표 좌표를 구해 검색 결과의 거리 기준점으로 사용합니다."""
     global _area_anchor
     if _area_anchor is None:
         response = requests.get(
@@ -29,10 +30,15 @@ def _get_area_anchor():
 
 
 def _to_wcongnamul(wgs84_x, wgs84_y):
-    """favorite/add가 요구하는 카카오맵 내부 좌표계(WCONGNAMUL)로 변환합니다."""
+    """WGS84 좌표를 카카오맵 즐겨찾기 API의 내부 좌표계로 변환합니다."""
     response = requests.get(
         KAKAO_TRANSCOORD_URL,
-        params={"x": wgs84_x, "y": wgs84_y, "input_coord": "WGS84", "output_coord": "WCONGNAMUL"},
+        params={
+            "x": wgs84_x,
+            "y": wgs84_y,
+            "input_coord": "WGS84",
+            "output_coord": "WCONGNAMUL",
+        },
         headers=kakao_auth_headers,
         timeout=10,
     )
@@ -42,9 +48,7 @@ def _to_wcongnamul(wgs84_x, wgs84_y):
 
 
 def _search_documents(keyword, max_pages=3):
-    """근접순으로 최대 max_pages 페이지(페이지당 15건)까지 가져옵니다.
-    프랜차이즈 지점명(예: "OO역점")이 근처에 몰려있으면 정확히 일치하는
-    상호명이 첫 페이지 밖으로 밀려날 수 있어, 여러 페이지를 확보해둡니다."""
+    """지역 기준점에서 가까운 장소를 최대 max_pages 페이지까지 조회합니다."""
     anchor_x, anchor_y = _get_area_anchor()
     documents = []
     for page in range(1, max_pages + 1):
@@ -70,12 +74,14 @@ def _search_documents(keyword, max_pages=3):
 
 
 def _pick_best_match(documents, keyword):
-    """거리보다 상호명 일치를 우선합니다: 정확히 일치 > 이름에 포함 > 그중 가장 가까운 곳."""
-    exact = [d for d in documents if d["place_name"] == keyword]
+    """정확히 일치하는 상호, 부분 일치 상호, 거리순 결과 순으로 선택합니다."""
+    exact = [document for document in documents if document["place_name"] == keyword]
     if exact:
         return exact[0]
 
-    contains = [d for d in documents if keyword in d["place_name"]]
+    contains = [
+        document for document in documents if keyword in document["place_name"]
+    ]
     if contains:
         return contains[0]
 
@@ -83,10 +89,7 @@ def _pick_best_match(documents, keyword):
 
 
 def search_place(keyword):
-    """카카오 로컬 API로 상호명을 검색해 favorite/add에 필요한 형태로 변환합니다.
-    동명이인 상호가 여러 지역에 있을 수 있어 AREA_KEYWORD 근방 결과를 우선하고,
-    거리보다 상호명이 정확히 일치하는 결과를 우선합니다.
-    검색 결과가 없으면 None을 반환합니다."""
+    """상호명을 검색해 즐겨찾기 API에 필요한 장소 데이터로 변환합니다."""
     documents = _search_documents(keyword)
     if not documents:
         return None
@@ -104,3 +107,16 @@ def search_place(keyword):
         "memo": "",
         "folderid": 0,
     }
+
+
+def add_favorite(place):
+    payload = {"datas": [place]}
+    response = requests.post(
+        KAKAO_FAVORITE_ADD_URL,
+        headers=kakao_map_headers,
+        json=payload,
+        timeout=10,
+    )
+    print(f"Status Code: {response.status_code}")
+    print(response.text)
+    return response
