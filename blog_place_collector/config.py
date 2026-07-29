@@ -6,10 +6,14 @@ from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SETTINGS_PATH = PROJECT_ROOT / "config" / "settings.yaml"
+EXAMPLE_SETTINGS_PATH = PROJECT_ROOT / "config" / "settings.example.yaml"
 
 load_dotenv(PROJECT_ROOT / ".env")
 
-with SETTINGS_PATH.open(encoding="utf-8") as f:
+_resolved_settings_path = (
+    SETTINGS_PATH if SETTINGS_PATH.exists() else EXAMPLE_SETTINGS_PATH
+)
+with _resolved_settings_path.open(encoding="utf-8") as f:
     _settings = yaml.safe_load(f)
 
 _search_settings = _settings["search"]
@@ -52,3 +56,13 @@ kakao_map_headers = {
 kakao_auth_headers = {"Authorization": f"KakaoAK {KAKAO_REST_API_KEY}"}
 
 headers = _settings["naver"]["headers"]
+
+
+def credential_status():
+    """비밀값을 노출하지 않고 로컬 설정 준비 상태만 반환합니다."""
+    return {
+        "gemini": bool(GEMINI_API_KEY),
+        "kakao_rest": bool(KAKAO_REST_API_KEY),
+        "kakao_cookie": bool(os.getenv("KAKAO_COOKIE")),
+        "settings": SETTINGS_PATH.exists(),
+    }

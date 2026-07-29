@@ -73,3 +73,29 @@ def top_business_names(posts, top_n=5):
     results = extract_business_names(posts)
     counter = Counter(result["name"] for result in results)
     return counter.most_common(top_n)
+
+
+def top_business_candidates(posts, top_n=5):
+    """언급 횟수와 근거 포스트를 함께 묶어 UI용 후보를 만듭니다."""
+    results = extract_business_names(posts)
+    counter = Counter(result["name"] for result in results)
+    posts_by_name = {}
+    for result in results:
+        source = result["post"]
+        sources = posts_by_name.setdefault(result["name"], [])
+        if not any(item["url"] == source["url"] for item in sources):
+            sources.append(
+                {
+                    "title": source["title"],
+                    "url": source["url"],
+                }
+            )
+
+    return [
+        {
+            "name": name,
+            "mention_count": count,
+            "sources": posts_by_name.get(name, []),
+        }
+        for name, count in counter.most_common(top_n)
+    ]
