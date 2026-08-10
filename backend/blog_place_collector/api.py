@@ -75,7 +75,7 @@ async def preview(payload: PreviewRequest):
 
 
 # API 라우트를 먼저 등록한 뒤 Svelte 빌드 결과를 루트 경로에서 제공합니다.
-frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
     app.mount(
         "/",

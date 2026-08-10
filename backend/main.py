@@ -3,7 +3,7 @@ import subprocess
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-FRONTEND_ROOT = PROJECT_ROOT / "frontend"
+FRONTEND_ROOT = PROJECT_ROOT.parent / "frontend"
 FRONTEND_DIST = FRONTEND_ROOT / "dist"
 
 
