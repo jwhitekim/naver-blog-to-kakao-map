@@ -124,6 +124,13 @@ def search_place(
 
 
 def add_favorite(place):
+    headers = kakao_map_headers()
+    if not headers.get("cookie"):
+        raise ValueError(
+            "카카오맵 로그인 세션이 없습니다. "
+            "`make kakao-login`을 실행해 로그인을 진행해 주세요."
+        )
+
     favorite_fields = {
         "type",
         "key",
@@ -135,11 +142,11 @@ def add_favorite(place):
         "memo",
         "folderid",
     }
-    payload = {"datas": [{key: value for key, value in place.items() if key in favorite_fields}]}
+    payload = [{key: value for key, value in place.items() if key in favorite_fields}]
     response = requests.post(
         KAKAO_FAVORITE_ADD_URL,
-        headers=kakao_map_headers,
-        json=payload,
+        headers=headers,
+        json={"datas": payload},
         timeout=10,
     )
     response.raise_for_status()

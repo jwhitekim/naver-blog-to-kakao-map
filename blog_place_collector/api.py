@@ -59,11 +59,20 @@ def _friendly_error(error):
     if isinstance(error, requests.HTTPError):
         status = error.response.status_code if error.response is not None else None
         if status in (401, 403):
-            return "API 인증 정보가 만료되었거나 올바르지 않습니다."
+            return "카카오 로그인이 만료되었습니다. `make kakao-login`을 다시 실행해 주세요."
         if status == 429:
             return "외부 서비스 요청 한도를 초과했습니다. 잠시 후 다시 시도해 주세요."
         return f"외부 서비스 요청에 실패했습니다.{f' (HTTP {status})' if status else ''}"
+    if isinstance(error, ValueError):
+        return str(error)
     return str(error) or "요청 처리 중 알 수 없는 오류가 발생했습니다."
+
+
+def _is_auth_expired(error):
+    if isinstance(error, requests.HTTPError):
+        status = error.response.status_code if error.response is not None else None
+        return status in (401, 403)
+    return isinstance(error, ValueError)
 
 
 @app.get("/api/health")
@@ -106,11 +115,10 @@ async def create_favorites(payload: FavoriteRequest):
                     "key": place.key,
                     "name": place.display1,
                     "message": _friendly_error(error),
+                    "auth_expired": _is_auth_expired(error),
                 }
             )
 
-    if not added and failed:
-        raise HTTPException(status_code=502, detail=failed[0]["message"])
     return {"added": added, "failed": failed}
 
 
