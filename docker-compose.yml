@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./config/settings.yaml:/app/config/settings.yaml:ro
+      - ./.kakao_session:/app/.kakao_session:ro
+    restart: unless-stopped
