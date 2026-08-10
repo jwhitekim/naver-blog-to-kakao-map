@@ -7,6 +7,15 @@ from blog_place_collector.config import (
     kakao_auth_headers,
 )
 
+# 카카오맵 웹사이트가 상세 페이지에서 쓰는 비공식 엔드포인트입니다.
+# 공식 REST API(키워드 검색)는 영업시간을 제공하지 않아 이걸로 보강합니다.
+# 문서화되지 않은 API라 예고 없이 바뀌거나 막힐 수 있습니다.
+KAKAO_MAP_OVERALL_URL = "https://map.kakao.com/api/dapi/overall"
+_kakao_map_headers = {
+    "User-Agent": "Mozilla/5.0",
+    "Referer": "https://map.kakao.com/",
+}
+
 _area_anchors = {}
 
 
@@ -94,4 +103,58 @@ def search_place(
         "category": place.get("category_name", ""),
         "phone": place.get("phone", ""),
         "place_url": place.get("place_url", ""),
+    }
+
+
+def _extract_business_hours(entry):
+    """카카오맵 상세 응답 하나를 화면에 쓸 수 있는 형태로 정리합니다."""
+    if not entry:
+        return None
+
+    display = entry.get("openhourDisplayText")
+    if not display:
+        period = next(
+            (
+                p
+                for p in entry.get("periodList") or []
+                if p.get("periodName") == "영업기간"
+            ),
+            None,
+        )
+        time_list = (period or {}).get("timeList") or []
+        if time_list:
+            display = time_list[0].get("timeSE")
+
+    if not display:
+        return None
+
+    realtime = entry.get("realtime") or {}
+    return {
+        "display": display,
+        "is_open": realtime.get("open") == "Y",
+        "closed_today": realtime.get("closedToday") == "Y",
+    }
+
+
+def get_business_hours(place_ids):
+    """장소 id 목록의 영업시간을 한 번에 조회합니다(카카오맵 비공식 API)."""
+    place_ids = list(place_ids)
+    if not place_ids:
+        return {}
+
+    response = requests.get(
+        KAKAO_MAP_OVERALL_URL,
+        params={
+            "confirmId": ",".join(str(place_id) for place_id in place_ids),
+            "mode": "standard",
+        },
+        headers=_kakao_map_headers,
+        timeout=10,
+    )
+    response.raise_for_status()
+    data = response.json()
+
+    return {
+        int(place_id): _extract_business_hours(data.get(str(place_id)))
+        for place_id in place_ids
     }
