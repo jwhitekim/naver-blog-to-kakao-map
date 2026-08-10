@@ -7,8 +7,8 @@ RUN npm run build
 
 FROM python:3.11-slim AS backend
 WORKDIR /app
-COPY backend/requirements.txt ./backend/requirements.txt
-RUN pip install --no-cache-dir -r backend/requirements.txt
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 EXPOSE 8000

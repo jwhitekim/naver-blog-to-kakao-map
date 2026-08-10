@@ -23,7 +23,7 @@ URL을 실제 엔드포인트로 변경합니다. 이 저장소에 실제 설정
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -r backend/requirements.txt
+.venv/bin/pip install -r requirements.txt
 cd frontend && npm install && cd ..
 .venv/bin/python backend/main.py
 ```
