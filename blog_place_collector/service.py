@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from blog_place_collector.clients.gemini import top_business_candidates
 from blog_place_collector.clients.kakao import search_place
 from blog_place_collector.clients.naver import naver_blog_search
@@ -19,7 +21,8 @@ def preview_collection(keyword, max_pages, top_n, radius):
             area_keyword=area_keyword,
             radius=radius,
         )
-        results.append({**candidate, "place": place})
+        naver_search_url = f"https://map.naver.com/p/search/{quote(candidate['name'])}"
+        results.append({**candidate, "place": place, "naver_search_url": naver_search_url})
 
     return {
         "post_count": len(posts),

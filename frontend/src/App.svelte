@@ -13,12 +13,8 @@
   let radius = 5000;
   let health = null;
   let result = null;
-  let selected = new Set();
-  let favoriteStatus = {};
   let loading = false;
-  let saving = false;
   let error = '';
-  let notice = '';
   let progressIndex = 0;
   let progressTimer;
 
@@ -43,10 +39,7 @@
     if (!keyword.trim() || loading) return;
     loading = true;
     error = '';
-    notice = '';
     result = null;
-    selected = new Set();
-    favoriteStatus = {};
     progressIndex = 0;
     progressTimer = setInterval(() => {
       progressIndex = Math.min(progressIndex + 1, progressMessages.length - 1);
@@ -64,87 +57,12 @@
         })
       });
       result = await parseResponse(response);
-      selected = new Set(
-        result.candidates.filter((candidate) => candidate.place).map((candidate) => candidate.place.key)
-      );
     } catch (requestError) {
       error = requestError.message;
     } finally {
       clearInterval(progressTimer);
       loading = false;
     }
-  }
-
-  function togglePlace(key) {
-    const next = new Set(selected);
-    next.has(key) ? next.delete(key) : next.add(key);
-    selected = next;
-  }
-
-  function selectAll() {
-    const available = result.candidates.filter((candidate) => candidate.place);
-    if (selected.size === available.length) {
-      selected = new Set();
-    } else {
-      selected = new Set(available.map((candidate) => candidate.place.key));
-    }
-  }
-
-  async function saveFavorites() {
-    if (!selected.size || saving) return;
-    saving = true;
-    error = '';
-    notice = '';
-    const places = result.candidates
-      .map((candidate) => candidate.place)
-      .filter((place) => place && selected.has(place.key));
-
-    const pending = { ...favoriteStatus };
-    places.forEach((place) => { pending[place.key] = 'pending'; });
-    favoriteStatus = pending;
-
-    let addedCount = 0;
-    let failedCount = 0;
-    let sessionExpired = false;
-
-    for (const place of places) {
-      if (sessionExpired) {
-        favoriteStatus = { ...favoriteStatus, [place.key]: undefined };
-        continue;
-      }
-      try {
-        const response = await fetch('/api/favorites', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ places: [place] })
-        });
-        const data = await parseResponse(response);
-        if (data.added.length) {
-          favoriteStatus = { ...favoriteStatus, [place.key]: 'added' };
-          addedCount += 1;
-        } else if (data.failed[0]?.auth_expired) {
-          favoriteStatus = { ...favoriteStatus, [place.key]: 'expired' };
-          sessionExpired = true;
-        } else {
-          favoriteStatus = { ...favoriteStatus, [place.key]: 'failed' };
-          failedCount += 1;
-        }
-      } catch (requestError) {
-        favoriteStatus = { ...favoriteStatus, [place.key]: 'failed' };
-        failedCount += 1;
-        error = requestError.message;
-      }
-    }
-
-    if (sessionExpired) {
-      error = '카카오 로그인이 만료됐어요. 터미널에서 make kakao-login을 다시 실행한 뒤 시도해 주세요.';
-    } else {
-      notice = `${addedCount}개 장소를 카카오맵 즐겨찾기에 등록했어요.`;
-      if (failedCount) {
-        notice += ` ${failedCount}개는 등록하지 못했습니다.`;
-      }
-    }
-    saving = false;
   }
 
   function formatDistance(meters) {
@@ -169,12 +87,6 @@
       <span class="status-dot"></span>
       {health === null ? '서버 확인 중' : health.status === 'ok' ? '로컬 서버 연결됨' : '서버 연결 필요'}
     </div>
-    {#if health?.status === 'ok'}
-      <div class:offline={!health.credentials.kakao_cookie} class="server-status">
-        <span class="status-dot"></span>
-        {health.credentials.kakao_cookie ? '카카오 로그인됨' : '카카오 로그인 필요'}
-      </div>
-    {/if}
   </div>
 </header>
 
@@ -182,7 +94,7 @@
   <section class="hero">
     <div class="eyebrow"><span></span> Blog to map, in a few clicks</div>
     <h1>블로그 속 좋은 장소,<br /><em>내 지도에 쏙.</em></h1>
-    <p>검색어만 입력하면 자주 언급된 장소를 찾아<br class="desktop-break" /> 카카오맵 즐겨찾기로 깔끔하게 옮겨드려요.</p>
+    <p>검색어만 입력하면 자주 언급된 장소를 찾아<br class="desktop-break" /> 카카오맵·네이버지도 링크로 바로 연결해드려요.</p>
   </section>
 
   <section class="search-panel" aria-labelledby="search-title">
@@ -280,14 +192,6 @@
     </div>
   {/if}
 
-  {#if notice}
-    <div class="alert success-alert" role="status">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg>
-      <div><strong>등록을 마쳤어요</strong><span>{notice}</span></div>
-      <button type="button" on:click={() => (notice = '')} aria-label="닫기">×</button>
-    </div>
-  {/if}
-
   {#if result}
     <section class="results" aria-labelledby="results-title">
       <div class="results-heading">
@@ -296,11 +200,6 @@
           <h2 id="results-title">찾은 장소를 확인해 주세요</h2>
           <p>블로그 {result.post_count}개에서 후보 {result.candidates.length}곳을 찾았어요.</p>
         </div>
-        {#if result.candidates.some((candidate) => candidate.place)}
-          <button class="select-all" type="button" on:click={selectAll}>
-            {selected.size === result.candidates.filter((candidate) => candidate.place).length ? '전체 해제' : '전체 선택'}
-          </button>
-        {/if}
       </div>
 
       {#if result.candidates.length === 0}
@@ -312,41 +211,15 @@
       {:else}
         <div class="place-list">
           {#each result.candidates as candidate, index}
-            <article class:unmatched={!candidate.place} class:selected={candidate.place && selected.has(candidate.place.key)} class="place-card">
+            <article class:unmatched={!candidate.place} class="place-card">
               <div class="rank">{String(index + 1).padStart(2, '0')}</div>
-              {#if candidate.place}
-                <label class="check">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(candidate.place.key)}
-                    on:change={() => togglePlace(candidate.place.key)}
-                  />
-                  <span>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12 4 4 8-8"/></svg>
-                  </span>
-                </label>
-              {:else}
-                <span class="no-match-icon">?</span>
-              {/if}
+              {#if !candidate.place}<span class="no-match-icon">?</span>{/if}
 
               <div class="place-content">
                 <div class="place-title-row">
                   <h3>{candidate.place?.display1 || candidate.name}</h3>
                   <span class="mentions">{candidate.mention_count}회 언급</span>
                   {#if !candidate.place}<span class="unmatched-badge">매칭 안 됨</span>{/if}
-                  {#if candidate.place && favoriteStatus[candidate.place.key]}
-                    <span class="favorite-badge {favoriteStatus[candidate.place.key]}">
-                      {#if favoriteStatus[candidate.place.key] === 'pending'}
-                        <span class="spinner"></span> 등록 중
-                      {:else if favoriteStatus[candidate.place.key] === 'added'}
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12 4 4 8-8"/></svg> 등록됨
-                      {:else if favoriteStatus[candidate.place.key] === 'expired'}
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg> 로그인 만료
-                      {:else}
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg> 등록 실패
-                      {/if}
-                    </span>
-                  {/if}
                 </div>
 
                 {#if candidate.place}
@@ -378,24 +251,22 @@
                 {/if}
               </div>
 
-              {#if candidate.place?.place_url}
-                <a class="map-link" href={candidate.place.place_url} target="_blank" rel="noreferrer" aria-label={`${candidate.place.display1} 카카오맵에서 보기`}>
-                  지도 보기
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-                </a>
-              {/if}
+              <div class="link-group">
+                {#if candidate.place?.place_url}
+                  <a class="map-link" href={candidate.place.place_url} target="_blank" rel="noreferrer" aria-label={`${candidate.place.display1} 카카오맵에서 보기`}>
+                    카카오맵
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                  </a>
+                {/if}
+                {#if candidate.naver_search_url}
+                  <a class="map-link" href={candidate.naver_search_url} target="_blank" rel="noreferrer" aria-label={`${candidate.place?.display1 || candidate.name} 네이버지도에서 보기`}>
+                    네이버지도
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                  </a>
+                {/if}
+              </div>
             </article>
           {/each}
-        </div>
-
-        <div class="save-bar">
-          <div>
-            <strong>{selected.size}곳 선택됨</strong>
-            <span>선택한 장소만 내 카카오맵에 저장해요.</span>
-          </div>
-          <button type="button" disabled={!selected.size || saving} on:click={saveFavorites}>
-            {#if saving}<span class="spinner dark"></span> 등록 중{:else}카카오맵 즐겨찾기에 추가{/if}
-          </button>
         </div>
       {/if}
     </section>
@@ -405,7 +276,7 @@
     <section class="how-it-works">
       <div class="section-intro">
         <span class="step-label">HOW IT WORKS</span>
-        <h2>찾고, 고르고, 저장하세요</h2>
+        <h2>찾고, 확인하고, 골라가세요</h2>
       </div>
       <div class="process-grid">
         <article>
@@ -424,7 +295,7 @@
           <div class="process-icon yellow">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.13 6-11a6 6 0 1 0-12 0c0 5.87 6 11 6 11Z"/><circle cx="12" cy="10" r="2"/></svg>
           </div>
-          <span>03</span><h3>카카오맵 저장</h3><p>원하는 장소만 골라 내 즐겨찾기에 한 번에 추가해요.</p>
+          <span>03</span><h3>지도로 이동</h3><p>카카오맵·네이버지도 링크로 바로 이동해 정보를 보고 즐겨찾기하세요.</p>
         </article>
       </div>
     </section>
