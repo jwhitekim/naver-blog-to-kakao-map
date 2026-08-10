@@ -7,13 +7,14 @@
     '카카오맵에서 정확한 장소를 찾고 있어요'
   ];
 
-  let keyword = '송리단길 카공';
+  let keyword = '';
   let maxPages = 10;
   let topN = 10;
   let radius = 5000;
   let health = null;
   let result = null;
   let selected = new Set();
+  let favoriteStatus = {};
   let loading = false;
   let saving = false;
   let error = '';
@@ -45,6 +46,7 @@
     notice = '';
     result = null;
     selected = new Set();
+    favoriteStatus = {};
     progressIndex = 0;
     progressTimer = setInterval(() => {
       progressIndex = Math.min(progressIndex + 1, progressMessages.length - 1);
@@ -97,22 +99,52 @@
       .map((candidate) => candidate.place)
       .filter((place) => place && selected.has(place.key));
 
-    try {
-      const response = await fetch('/api/favorites', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ places })
-      });
-      const data = await parseResponse(response);
-      notice = `${data.added.length}개 장소를 카카오맵 즐겨찾기에 등록했어요.`;
-      if (data.failed.length) {
-        notice += ` ${data.failed.length}개는 등록하지 못했습니다.`;
+    const pending = { ...favoriteStatus };
+    places.forEach((place) => { pending[place.key] = 'pending'; });
+    favoriteStatus = pending;
+
+    let addedCount = 0;
+    let failedCount = 0;
+    let sessionExpired = false;
+
+    for (const place of places) {
+      if (sessionExpired) {
+        favoriteStatus = { ...favoriteStatus, [place.key]: undefined };
+        continue;
       }
-    } catch (requestError) {
-      error = requestError.message;
-    } finally {
-      saving = false;
+      try {
+        const response = await fetch('/api/favorites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ places: [place] })
+        });
+        const data = await parseResponse(response);
+        if (data.added.length) {
+          favoriteStatus = { ...favoriteStatus, [place.key]: 'added' };
+          addedCount += 1;
+        } else if (data.failed[0]?.auth_expired) {
+          favoriteStatus = { ...favoriteStatus, [place.key]: 'expired' };
+          sessionExpired = true;
+        } else {
+          favoriteStatus = { ...favoriteStatus, [place.key]: 'failed' };
+          failedCount += 1;
+        }
+      } catch (requestError) {
+        favoriteStatus = { ...favoriteStatus, [place.key]: 'failed' };
+        failedCount += 1;
+        error = requestError.message;
+      }
     }
+
+    if (sessionExpired) {
+      error = '카카오 로그인이 만료됐어요. 터미널에서 make kakao-login을 다시 실행한 뒤 시도해 주세요.';
+    } else {
+      notice = `${addedCount}개 장소를 카카오맵 즐겨찾기에 등록했어요.`;
+      if (failedCount) {
+        notice += ` ${failedCount}개는 등록하지 못했습니다.`;
+      }
+    }
+    saving = false;
   }
 
   function formatDistance(meters) {
@@ -132,9 +164,17 @@
     <span>Placepick</span>
   </a>
 
-  <div class:offline={health?.status === 'offline'} class="server-status">
-    <span class="status-dot"></span>
-    {health === null ? '서버 확인 중' : health.status === 'ok' ? '로컬 서버 연결됨' : '서버 연결 필요'}
+  <div class="status-group">
+    <div class:offline={health?.status === 'offline'} class="server-status">
+      <span class="status-dot"></span>
+      {health === null ? '서버 확인 중' : health.status === 'ok' ? '로컬 서버 연결됨' : '서버 연결 필요'}
+    </div>
+    {#if health?.status === 'ok'}
+      <div class:offline={!health.credentials.kakao_cookie} class="server-status">
+        <span class="status-dot"></span>
+        {health.credentials.kakao_cookie ? '카카오 로그인됨' : '카카오 로그인 필요'}
+      </div>
+    {/if}
   </div>
 </header>
 
@@ -162,7 +202,7 @@
         <span>네이버 블로그 검색어</span>
         <div class="input-wrap">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
-          <input bind:value={keyword} maxlength="80" placeholder="예: 성수동 소품샵, 제주 애월 카페" />
+          <input bind:value={keyword} maxlength="80" placeholder="" />
           <button type="submit" disabled={loading || !keyword.trim()}>
             {#if loading}
               <span class="spinner"></span> 찾는 중
@@ -294,6 +334,19 @@
                   <h3>{candidate.place?.display1 || candidate.name}</h3>
                   <span class="mentions">{candidate.mention_count}회 언급</span>
                   {#if !candidate.place}<span class="unmatched-badge">매칭 안 됨</span>{/if}
+                  {#if candidate.place && favoriteStatus[candidate.place.key]}
+                    <span class="favorite-badge {favoriteStatus[candidate.place.key]}">
+                      {#if favoriteStatus[candidate.place.key] === 'pending'}
+                        <span class="spinner"></span> 등록 중
+                      {:else if favoriteStatus[candidate.place.key] === 'added'}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12 4 4 8-8"/></svg> 등록됨
+                      {:else if favoriteStatus[candidate.place.key] === 'expired'}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg> 로그인 만료
+                      {:else}
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg> 등록 실패
+                      {/if}
+                    </span>
+                  {/if}
                 </div>
 
                 {#if candidate.place}
