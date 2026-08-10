@@ -212,13 +212,18 @@
         <div class="place-list">
           {#each result.candidates as candidate, index}
             <article class:unmatched={!candidate.place} class="place-card">
-              <div class="rank">{String(index + 1).padStart(2, '0')}</div>
-              {#if !candidate.place}<span class="no-match-icon">?</span>{/if}
+              <div class="place-avatar" class:no-match={!candidate.place}>
+                {#if candidate.place}
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.13 6-11a6 6 0 1 0-12 0c0 5.87 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg>
+                {:else}
+                  <span>?</span>
+                {/if}
+              </div>
 
               <div class="place-content">
                 <div class="place-title-row">
+                  <span class="rank">{String(index + 1).padStart(2, '0')}</span>
                   <h3>{candidate.place?.display1 || candidate.name}</h3>
-                  <span class="mentions">{candidate.mention_count}회 언급</span>
                   {#if !candidate.place}<span class="unmatched-badge">매칭 안 됨</span>{/if}
                 </div>
 
@@ -230,37 +235,46 @@
                   <div class="meta">
                     {#if candidate.place.category}<span>{candidate.place.category.split(' > ').at(-1)}</span>{/if}
                     {#if candidate.place.phone}<span>{candidate.place.phone}</span>{/if}
+                    {#if candidate.place.business_hours}
+                      <span class="hours" class:closed={!candidate.place.business_hours.is_open}>
+                        {candidate.place.business_hours.is_open ? '영업중' : '영업종료'} · {candidate.place.business_hours.display}
+                      </span>
+                    {/if}
                     <span>{formatDistance(radius)} 반경 검색</span>
                   </div>
                 {:else}
                   <p class="address">카카오맵에서 ‘{candidate.name}’의 정확한 장소를 찾지 못했어요.</p>
                 {/if}
 
-                {#if candidate.sources.length}
-                  <details>
-                    <summary>근거 블로그 {candidate.sources.length}개 보기</summary>
-                    <div class="sources">
-                      {#each candidate.sources as source}
-                        <a href={source.url} target="_blank" rel="noreferrer">
-                          <span>N</span>{source.title}
-                          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8"/><path d="M18 13v5H6V6h5"/></svg>
-                        </a>
-                      {/each}
-                    </div>
-                  </details>
-                {/if}
+                <div class="card-footer">
+                  <span class="mentions">블로그 {candidate.mention_count}회 언급</span>
+
+                  {#if candidate.sources.length}
+                    <details>
+                      <summary>근거 {candidate.sources.length}개 보기</summary>
+                      <div class="sources">
+                        {#each candidate.sources as source}
+                          <a href={source.url} target="_blank" rel="noreferrer">
+                            <span>N</span>{source.title}
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8"/><path d="M18 13v5H6V6h5"/></svg>
+                          </a>
+                        {/each}
+                      </div>
+                    </details>
+                  {/if}
+                </div>
               </div>
 
               <div class="link-group">
                 {#if candidate.place?.place_url}
-                  <a class="map-link" href={candidate.place.place_url} target="_blank" rel="noreferrer" aria-label={`${candidate.place.display1} 카카오맵에서 보기`}>
-                    카카오맵
+                  <a class="map-link kakao" href={candidate.place.place_url} target="_blank" rel="noreferrer" aria-label={`${candidate.place.display1} 카카오맵에서 보기`}>
+                    <span class="dot"></span>카카오맵
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
                   </a>
                 {/if}
                 {#if candidate.naver_search_url}
-                  <a class="map-link" href={candidate.naver_search_url} target="_blank" rel="noreferrer" aria-label={`${candidate.place?.display1 || candidate.name} 네이버지도에서 보기`}>
-                    네이버지도
+                  <a class="map-link naver" href={candidate.naver_search_url} target="_blank" rel="noreferrer" aria-label={`${candidate.place?.display1 || candidate.name} 네이버지도에서 보기`}>
+                    <span class="dot"></span>네이버지도
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
                   </a>
                 {/if}
@@ -280,19 +294,19 @@
       </div>
       <div class="process-grid">
         <article>
-          <div class="process-icon green">
+          <div class="process-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4M8 11h6M11 8v6"/></svg>
           </div>
           <span>01</span><h3>블로그 수집</h3><p>검색어와 관련된 네이버 블로그 글을 빠르게 모아요.</p>
         </article>
         <article>
-          <div class="process-icon coral">
+          <div class="process-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3Z"/><path d="m18 15 .8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8L18 15Z"/></svg>
           </div>
           <span>02</span><h3>AI 장소 추출</h3><p>글 속 상호명을 구분하고 자주 등장한 순서로 정리해요.</p>
         </article>
         <article>
-          <div class="process-icon yellow">
+          <div class="process-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.13 6-11a6 6 0 1 0-12 0c0 5.87 6 11 6 11Z"/><circle cx="12" cy="10" r="2"/></svg>
           </div>
           <span>03</span><h3>지도로 이동</h3><p>카카오맵·네이버지도 링크로 바로 이동해 정보를 보고 즐겨찾기하세요.</p>
