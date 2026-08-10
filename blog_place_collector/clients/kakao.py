@@ -2,12 +2,9 @@ import requests
 
 from blog_place_collector.config import (
     AREA_KEYWORD,
-    KAKAO_FAVORITE_ADD_URL,
     KAKAO_LOCAL_SEARCH_URL,
     KAKAO_SEARCH_RADIUS,
-    KAKAO_TRANSCOORD_URL,
     kakao_auth_headers,
-    kakao_map_headers,
 )
 
 _area_anchors = {}
@@ -29,24 +26,6 @@ def _get_area_anchor(area_keyword=AREA_KEYWORD):
         document = documents[0]
         _area_anchors[area_keyword] = (document["x"], document["y"])
     return _area_anchors[area_keyword]
-
-
-def _to_wcongnamul(wgs84_x, wgs84_y):
-    """WGS84 좌표를 카카오맵 즐겨찾기 API의 내부 좌표계로 변환합니다."""
-    response = requests.get(
-        KAKAO_TRANSCOORD_URL,
-        params={
-            "x": wgs84_x,
-            "y": wgs84_y,
-            "input_coord": "WGS84",
-            "output_coord": "WCONGNAMUL",
-        },
-        headers=kakao_auth_headers,
-        timeout=10,
-    )
-    response.raise_for_status()
-    document = response.json()["documents"][0]
-    return document["x"], document["y"]
 
 
 def _search_documents(
@@ -100,54 +79,19 @@ def search_place(
     area_keyword=AREA_KEYWORD,
     radius=KAKAO_SEARCH_RADIUS,
 ):
-    """상호명을 검색해 즐겨찾기 API에 필요한 장소 데이터로 변환합니다."""
+    """상호명을 검색해 장소 정보(좌표·주소 등)를 반환합니다."""
     documents = _search_documents(keyword, area_keyword=area_keyword, radius=radius)
     if not documents:
         return None
 
     place = _pick_best_match(documents, keyword)
-    x, y = _to_wcongnamul(place["x"], place["y"])
     return {
-        "type": "place",
         "key": int(place["id"]),
         "display1": place["place_name"],
         "display2": place["road_address_name"] or place["address_name"],
-        "x": x,
-        "y": y,
-        "color": "02",
-        "memo": "",
-        "folderid": 0,
+        "x": float(place["x"]),
+        "y": float(place["y"]),
         "category": place.get("category_name", ""),
         "phone": place.get("phone", ""),
         "place_url": place.get("place_url", ""),
     }
-
-
-def add_favorite(place):
-    headers = kakao_map_headers()
-    if not headers.get("cookie"):
-        raise ValueError(
-            "카카오맵 로그인 세션이 없습니다. "
-            "`make kakao-login`을 실행해 로그인을 진행해 주세요."
-        )
-
-    favorite_fields = {
-        "type",
-        "key",
-        "display1",
-        "display2",
-        "x",
-        "y",
-        "color",
-        "memo",
-        "folderid",
-    }
-    payload = [{key: value for key, value in place.items() if key in favorite_fields}]
-    response = requests.post(
-        KAKAO_FAVORITE_ADD_URL,
-        headers=headers,
-        json={"datas": payload},
-        timeout=10,
-    )
-    response.raise_for_status()
-    return response

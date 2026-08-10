@@ -7,5 +7,4 @@ services:
       - .env
     volumes:
       - ./config/settings.yaml:/app/config/settings.yaml:ro
-      - ./.kakao_session:/app/.kakao_session:ro
     restart: unless-stopped

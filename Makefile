@@ -1,13 +1,9 @@
-.PHONY: setup dev backend frontend test build kakao-login
+.PHONY: setup dev backend frontend test build
 
 setup:
 	python3 -m venv .venv
 	.venv/bin/pip install -r requirements.txt
-	.venv/bin/python -m playwright install chromium
 	cd frontend && npm install
-
-kakao-login:
-	.venv/bin/python -m blog_place_collector.clients.kakao_login
 
 dev:
 	.venv/bin/python main.py --reload

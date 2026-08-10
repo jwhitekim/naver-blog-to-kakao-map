@@ -4,8 +4,6 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
-from blog_place_collector.clients.kakao_session import load_cookie_header
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SETTINGS_PATH = PROJECT_ROOT / "config" / "settings.yaml"
 EXAMPLE_SETTINGS_PATH = PROJECT_ROOT / "config" / "settings.example.yaml"
@@ -47,17 +45,6 @@ GEMINI_API_URL = (
 
 KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY")
 KAKAO_LOCAL_SEARCH_URL = _settings["kakao"]["local_search_url"]
-KAKAO_TRANSCOORD_URL = _settings["kakao"]["transcoord_url"]
-KAKAO_FAVORITE_ADD_URL = _settings["kakao"]["favorite_add_url"]
-
-
-def kakao_map_headers():
-    return {
-        **_settings["kakao"]["map_headers"],
-        "cookie": load_cookie_header(),
-    }
-
-
 kakao_auth_headers = {"Authorization": f"KakaoAK {KAKAO_REST_API_KEY}"}
 
 headers = _settings["naver"]["headers"]
@@ -68,6 +55,5 @@ def credential_status():
     return {
         "gemini": bool(GEMINI_API_KEY),
         "kakao_rest": bool(KAKAO_REST_API_KEY),
-        "kakao_cookie": bool(load_cookie_header()),
         "settings": SETTINGS_PATH.exists(),
     }

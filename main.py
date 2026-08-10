@@ -56,22 +56,11 @@ def _parse_args():
         action="store_true",
         help="Svelte 변경 확인 및 자동 빌드를 건너뜁니다.",
     )
-    parser.add_argument(
-        "--cli",
-        action="store_true",
-        help="기존 터미널 수집 워크플로를 실행합니다.",
-    )
     return parser.parse_args()
 
 
 def main():
     args = _parse_args()
-    if args.cli:
-        from blog_place_collector.workflow import run
-
-        run()
-        return
-
     if not args.no_build:
         _build_frontend()
 

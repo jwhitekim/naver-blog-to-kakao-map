@@ -17,12 +17,3 @@ naver:
 
 kakao:
   local_search_url: "https://dapi.kakao.com/v2/local/search/keyword.json"
-  transcoord_url: "https://dapi.kakao.com/v2/local/geo/transcoord.json"
-  favorite_add_url: "https://example.com/replace-with-real-endpoint"
-  map_headers:
-    accept: "application/json, text/plain, */*"
-    content-type: "application/json;charset=UTF-8"
-    origin: "https://example.com"
-    referer: "https://example.com/replace-with-real-referer"
-    user-agent: "Mozilla/5.0 (replace-with-real-user-agent)"
-    x-requested-with: "XMLHttpRequest"
