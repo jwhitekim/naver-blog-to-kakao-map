@@ -9,7 +9,6 @@
 - Node.js 20.19 이상
 - Gemini API 키
 - Kakao REST API 키
-- 로그인된 카카오맵 세션의 쿠키
 
 ## 처음 실행
 
@@ -18,14 +17,21 @@ cp .env.example .env
 cp config/settings.example.yaml config/settings.yaml
 ```
 
-`.env`에 API 키와 쿠키를 입력하고, `config/settings.yaml`의 예제 URL을 실제
+`.env`에 API 키를 입력하고, `config/settings.yaml`의 예제 URL을 실제
 엔드포인트로 변경합니다. 이 저장소에 실제 설정 파일이 이미 있다면 복사 단계는
 건너뛰세요.
 
 ```bash
 make setup
+make kakao-login   # 최초 1회, 브라우저 창에서 카카오 로그인
 python main.py
 ```
+
+`make kakao-login`은 로컬 화면에서 브라우저 창을 띄워 카카오맵 로그인(2단계
+인증 포함)을 한 번 진행하고, 그 세션을 `.kakao_session/`에 저장합니다. 이후
+즐겨찾기 추가 요청은 이 저장된 세션을 재사용하며, 세션이 완전히 만료되면 다시
+`make kakao-login`을 실행하면 됩니다. 이 스크립트는 화면이 있는 로컬 환경에서
+실행해야 하며, Docker 컨테이너 안에서는 실행할 수 없습니다.
 
 브라우저에서 <http://127.0.0.1:8000>을 엽니다. FastAPI 문서는
 <http://127.0.0.1:8000/docs>에서 확인할 수 있습니다.
