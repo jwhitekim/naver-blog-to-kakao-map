@@ -21,7 +21,7 @@ _search_settings = _settings["search"]
 MAX_PAGES = _search_settings["max_pages"]
 TOP_N = _search_settings["top_n"]
 KEYWORD = _search_settings["keyword"]
-AREA_KEYWORD = KEYWORD.split()[0]
+AREA_KEYWORD = KEYWORD.split()[0] if KEYWORD.split() else ""
 KAKAO_SEARCH_RADIUS = _search_settings["kakao_search_radius"]
 
 NAVER_BLOG_API_URL = _settings["naver"]["api_url"]
