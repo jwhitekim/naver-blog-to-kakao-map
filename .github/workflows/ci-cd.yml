@@ -16,16 +16,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  backend-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install -r requirements.txt
-      - run: PYTHONPATH=backend python -m unittest discover -s backend/tests -v
-
   frontend-build:
     runs-on: ubuntu-latest
     steps:
@@ -39,6 +29,27 @@ jobs:
         working-directory: frontend
       - run: npm run build
         working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+  backend-test:
+    needs: frontend-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      # backend/api.py는 frontend/dist가 있을 때만 프론트엔드를 서빙하므로,
+      # test_frontend_is_served_from_backend 테스트를 위해 빌드 결과가 필요합니다.
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+      - run: PYTHONPATH=backend python -m unittest discover -s backend/tests -v
 
   docker-build:
     runs-on: ubuntu-latest
