@@ -59,8 +59,9 @@ cd frontend && npm run dev     # Svelte 개발 서버만 별도로 실행할 때
 
 `main` 브랜치에 push 또는 PR이 열리면 GitHub Actions(`.github/workflows/ci-cd.yml`)가
 백엔드 테스트, 프론트엔드 빌드, Docker 이미지 빌드를 검증합니다. 세 검증이 모두
-통과하고 `main`에 직접 push된 경우에만 OpenSSH로 배포 서버에 접속해 최신 코드를
-받고 `docker compose up -d --build`를 실행합니다.
+통과하고 `main`에 직접 push된 경우에만 OpenSSH로 배포 서버(Windows + WSL)에 접속해
+`wsl.exe -- bash`로 WSL 안에 들어간 뒤 최신 코드를 받고
+`docker compose up -d --build`를 실행합니다.
 
 배포를 사용하려면 저장소 Settings → Secrets and variables → Actions에 아래 값을
 등록하세요 (Settings → Environments에 `production` 환경을 만들어 등록해도 됩니다).
@@ -71,8 +72,9 @@ cd frontend && npm run dev     # Svelte 개발 서버만 별도로 실행할 때
 | `SSH_HOST` (또는 `SERVER_HOST`) | 배포 서버 호스트/IP |
 | `SSH_PORT` | 배포 서버 SSH 포트 |
 | `SSH_USER` (또는 `SERVER_USER`) | 배포 서버 SSH 사용자 |
-| `DEPLOY_PATH` | 서버에서 이 저장소가 `git clone`되어 있는 절대 경로 |
 
-배포 서버는 `git`, `docker`, `docker compose` 플러그인이 설치되어 있어야 하고,
-`DEPLOY_PATH` 위치에 이 저장소가 이미 clone되어 있어야 합니다 (최초 1회는 수동으로
-`git clone` 후 `setup-nginx-https.sh`로 초기 설정하세요).
+배포 경로는 워크플로우에 `/mnt/c/Users/admin/joonspace`로 고정되어 있습니다. 경로가
+바뀌면 `.github/workflows/ci-cd.yml`의 `Deploy` 스텝을 직접 수정하세요. 이 WSL 경로에
+저장소가 이미 `git clone`되어 있어야 하고, `git`, `docker`, `docker compose` 플러그인이
+WSL 안에 설치되어 있어야 합니다 (최초 1회는 수동으로 `git clone` 후
+`setup-nginx-https.sh`로 초기 설정하세요).

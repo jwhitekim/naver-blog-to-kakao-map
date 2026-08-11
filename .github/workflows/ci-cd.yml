@@ -101,20 +101,18 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST || secrets.SERVER_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER || secrets.SERVER_USER }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
           set -euo pipefail
 
           : "${SSH_USER:?GitHub secret SSH_USER or SERVER_USER is not set}"
-          : "${DEPLOY_PATH:?GitHub secret DEPLOY_PATH is not set}"
 
           ssh \
             -i ~/.ssh/placepick_deploy \
             -p "$SSH_PORT" \
             "$SSH_USER@$SSH_HOST" \
-            "DEPLOY_PATH='$DEPLOY_PATH' bash -s" <<'REMOTE_SCRIPT'
+            'wsl.exe -- bash -s' <<'REMOTE_SCRIPT'
           set -euo pipefail
-          cd "$DEPLOY_PATH"
+          cd /mnt/c/Users/admin/joonspace
           git fetch origin main
           git reset --hard origin/main
           docker compose up -d --build
