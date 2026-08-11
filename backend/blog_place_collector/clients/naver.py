@@ -1,3 +1,4 @@
+import html
 import json
 
 import requests
@@ -12,7 +13,8 @@ from blog_place_collector.config import (
 
 
 def _strip_highlight(text):
-    return text.replace('<strong class="search_keyword">', "").replace("</strong>", "")
+    text = text.replace('<strong class="search_keyword">', "").replace("</strong>", "")
+    return html.unescape(text)
 
 
 def naver_blog_search(keyword=KEYWORD, max_pages=MAX_PAGES):
