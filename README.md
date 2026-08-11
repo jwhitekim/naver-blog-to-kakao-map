@@ -73,7 +73,8 @@ cd frontend && npm run dev     # Svelte 개발 서버만 별도로 실행할 때
 | `SSH_PORT` | 배포 서버 SSH 포트 |
 | `SSH_USER` (또는 `SERVER_USER`) | 배포 서버 SSH 사용자 |
 
-배포 경로는 워크플로우에 `/mnt/c/Users/admin/joonspace`로 고정되어 있습니다. 경로가
+배포 경로는 워크플로우에 `/mnt/c/Users/admin/joonspace/naver-blog-to-kakao-map`으로
+고정되어 있습니다. 경로가
 바뀌면 `.github/workflows/ci-cd.yml`의 `Deploy` 스텝을 직접 수정하세요. 이 WSL 경로에
 저장소가 이미 `git clone`되어 있어야 하고, `git`, `docker`, `docker compose` 플러그인이
 WSL 안에 설치되어 있어야 합니다 (최초 1회는 수동으로 `git clone` 후
