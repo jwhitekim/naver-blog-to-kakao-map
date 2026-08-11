@@ -87,7 +87,12 @@ jobs:
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/placepick_deploy
           chmod 600 ~/.ssh/placepick_deploy
 
-          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          if ! timeout 10 bash -c ": < /dev/tcp/$SSH_HOST/$SSH_PORT" 2>/dev/null; then
+            echo "::error::${SSH_HOST}:${SSH_PORT}에 연결할 수 없습니다. 방화벽/포트포워딩과 SSH_HOST·SSH_PORT secret 값을 확인하세요."
+            exit 1
+          fi
+
+          ssh-keyscan -p "$SSH_PORT" -T 10 -H "$SSH_HOST" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
       - name: Deploy
