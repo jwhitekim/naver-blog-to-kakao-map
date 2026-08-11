@@ -246,8 +246,8 @@ label > span { display: block; margin-bottom: 8px; color: var(--ink); font-size:
 .meta .hours.closed { color: var(--closed); }
 
 .card-footer { margin-top: auto; padding-top: 12px; border-top: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.mentions { color: var(--ink); font-size: 12px; font-weight: 600; }
-details { position: relative; }
+.mentions { color: var(--ink); font-size: 12px; font-weight: 600; flex: 0 0 auto; }
+details { position: relative; min-width: 0; }
 summary { color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 600; list-style: none; }
 summary::-webkit-details-marker { display: none; }
 summary:hover { color: var(--ink); }
