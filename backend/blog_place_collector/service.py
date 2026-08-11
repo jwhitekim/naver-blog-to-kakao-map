@@ -26,12 +26,38 @@ def preview_collection(keyword, max_pages, top_n, radius):
         naver_search_url = f"https://map.naver.com/p/search/{quote(candidate['name'])}"
         results.append({**candidate, "place": place, "naver_search_url": naver_search_url})
 
+    results = _merge_duplicate_places(results)
     _attach_business_hours(results)
 
     return {
         "post_count": len(posts),
         "candidates": results,
     }
+
+
+def _merge_duplicate_places(results):
+    """LLM이 같은 장소를 다른 상호명으로 추출해도 카카오맵 장소 ID 기준으로 하나로 합칩니다."""
+    merged = {}
+    order = []
+    for result in results:
+        place = result["place"]
+        key = place["key"] if place else f"unmatched:{result['name']}"
+        if key not in merged:
+            merged[key] = result
+            order.append(key)
+            continue
+
+        existing = merged[key]
+        existing["mention_count"] += result["mention_count"]
+        existing_urls = {source["url"] for source in existing["sources"]}
+        for source in result["sources"]:
+            if source["url"] not in existing_urls:
+                existing["sources"].append(source)
+                existing_urls.add(source["url"])
+
+    merged_results = [merged[key] for key in order]
+    merged_results.sort(key=lambda result: result["mention_count"], reverse=True)
+    return merged_results
 
 
 def _attach_business_hours(results):
