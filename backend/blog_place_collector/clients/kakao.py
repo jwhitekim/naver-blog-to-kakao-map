@@ -1,3 +1,5 @@
+import re
+
 import requests
 
 from blog_place_collector.config import (
@@ -68,17 +70,31 @@ def _search_documents(
     return documents
 
 
-def _pick_best_match(documents, keyword):
-    """정확히 일치하는 상호, 부분 일치 상호, 거리순 결과 순으로 선택합니다."""
+def _normalize_name(text):
+    return re.sub(r"\s+", "", text)
+
+
+def _names_match(place_name, keyword):
+    normalized_place = _normalize_name(place_name)
+    normalized_keyword = _normalize_name(keyword)
+    return normalized_keyword in normalized_place or normalized_place in normalized_keyword
+
+
+def _pick_best_match(documents, keyword, require_match=False):
+    """정확히 일치하는 상호, 부분 일치 상호, 거리순 결과 순으로 선택합니다.
+    require_match=True면 이름이 전혀 안 맞을 때 거리순 fallback 대신 None을 반환합니다."""
     exact = [document for document in documents if document["place_name"] == keyword]
     if exact:
         return exact[0]
 
     contains = [
-        document for document in documents if keyword in document["place_name"]
+        document for document in documents if _names_match(document["place_name"], keyword)
     ]
     if contains:
         return contains[0]
+
+    if require_match:
+        return None
 
     return documents[0]
 
@@ -87,13 +103,18 @@ def search_place(
     keyword,
     area_keyword=AREA_KEYWORD,
     radius=KAKAO_SEARCH_RADIUS,
+    require_match=False,
 ):
-    """상호명을 검색해 장소 정보(좌표·주소 등)를 반환합니다."""
+    """상호명을 검색해 장소 정보(좌표·주소 등)를 반환합니다.
+    require_match=True면 이름이 실제로 맞는 결과가 없을 때 None을 반환합니다
+    (느슨하게 추출한 후보를 카카오맵 검색으로 검증할 때 사용)."""
     documents = _search_documents(keyword, area_keyword=area_keyword, radius=radius)
     if not documents:
         return None
 
-    place = _pick_best_match(documents, keyword)
+    place = _pick_best_match(documents, keyword, require_match=require_match)
+    if place is None:
+        return None
     return {
         "key": int(place["id"]),
         "display1": place["place_name"],

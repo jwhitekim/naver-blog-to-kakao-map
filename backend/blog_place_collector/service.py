@@ -2,7 +2,7 @@ from urllib.parse import quote
 
 import requests
 
-from blog_place_collector.clients.gemini import top_business_candidates
+from blog_place_collector.clients.gemini import extract_business_names
 from blog_place_collector.clients.kakao import get_business_hours, search_place
 from blog_place_collector.clients.naver import naver_blog_search
 
@@ -13,51 +13,57 @@ def preview_collection(keyword, max_pages, top_n, radius):
     if not posts:
         return {"post_count": 0, "candidates": []}
 
-    candidates = top_business_candidates(posts, top_n=top_n)
     area_keyword = keyword.split()[0]
+    candidates = _verified_candidates(posts, area_keyword=area_keyword, radius=radius)
+    top_candidates = candidates[:top_n]
 
-    results = []
-    for candidate in candidates:
-        place = search_place(
-            candidate["name"],
-            area_keyword=area_keyword,
-            radius=radius,
-        )
-        naver_search_url = f"https://map.naver.com/p/search/{quote(candidate['name'])}"
-        results.append({**candidate, "place": place, "naver_search_url": naver_search_url})
+    for candidate in top_candidates:
+        candidate["naver_search_url"] = f"https://map.naver.com/p/search/{quote(candidate['name'])}"
 
-    results = _merge_duplicate_places(results)
-    _attach_business_hours(results)
+    _attach_business_hours(top_candidates)
 
     return {
         "post_count": len(posts),
-        "candidates": results,
+        "candidates": top_candidates,
     }
 
 
-def _merge_duplicate_places(results):
-    """LLM이 같은 장소를 다른 상호명으로 추출해도 카카오맵 장소 ID 기준으로 하나로 합칩니다."""
-    merged = {}
+def _verified_candidates(posts, area_keyword, radius):
+    """LLM이 느슨하게 추출한 후보를 카카오맵 검색으로 검증합니다.
+    실제로 존재하는 장소만 남기고, 카카오맵 장소 ID 기준으로 묶어 언급 횟수 순으로 정렬합니다."""
+    guesses = extract_business_names(posts)
+
+    grouped = {}
     order = []
-    for result in results:
-        place = result["place"]
-        key = place["key"] if place else f"unmatched:{result['name']}"
-        if key not in merged:
-            merged[key] = result
-            order.append(key)
+    for guess in guesses:
+        place = search_place(
+            guess["name"],
+            area_keyword=area_keyword,
+            radius=radius,
+            require_match=True,
+        )
+        if not place:
             continue
 
-        existing = merged[key]
-        existing["mention_count"] += result["mention_count"]
-        existing_urls = {source["url"] for source in existing["sources"]}
-        for source in result["sources"]:
-            if source["url"] not in existing_urls:
-                existing["sources"].append(source)
-                existing_urls.add(source["url"])
+        key = place["key"]
+        if key not in grouped:
+            grouped[key] = {
+                "name": place["display1"],
+                "mention_count": 0,
+                "sources": [],
+                "place": place,
+            }
+            order.append(key)
 
-    merged_results = [merged[key] for key in order]
-    merged_results.sort(key=lambda result: result["mention_count"], reverse=True)
-    return merged_results
+        entry = grouped[key]
+        entry["mention_count"] += 1
+        source = guess["post"]
+        if not any(existing["url"] == source["url"] for existing in entry["sources"]):
+            entry["sources"].append({"title": source["title"], "url": source["url"]})
+
+    ranked = [grouped[key] for key in order]
+    ranked.sort(key=lambda candidate: candidate["mention_count"], reverse=True)
+    return ranked
 
 
 def _attach_business_hours(results):

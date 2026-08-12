@@ -22,13 +22,14 @@ PROMPT_TEMPLATE = """\
 각 항목에서 리뷰 대상으로 언급된 가게, 시설, 업체의 상호명을 추출하세요.
 
 규칙:
-- 상호명은 카카오맵에서 검색할 수 있는 정식 명칭으로 통일하세요.
+- 상호명으로 보이거나 상호명으로 추측되는 표현이 있으면 확신이 없어도 최대한 추출하세요.
+  실제로 존재하는 상호인지는 이후 카카오맵 검색으로 검증하니, 애매하다고 여기서 걸러내지 마세요.
+- 상호명은 카카오맵에서 검색할 수 있는 정식 명칭에 가깝게 통일하세요.
 - 지점명이 명확히 언급되면 지점명까지 포함하세요.
 - 검색 지역명(예: 강남, 이태원)은 실제 지점명의 일부일 때만 포함하고, 단순히 위치를 설명하는 수식어라면 제외하세요.
 - 같은 가게가 여러 항목에서 다른 표기로 언급되더라도 동일한 상호명 하나로 통일해서 출력하세요.
 - 제목에 없어도 본문에 구체적인 상호명이 있으면 추출하세요.
-- 지역명, 역 이름, 업종 같은 일반 단어만 있고 구체적인 상호명이 없으면 제외하세요.
-- 리뷰 대상이 아닌 장소나 상호명이 불분명한 항목은 제외하세요.
+- 지역명, 역 이름, 업종처럼 상호명이 전혀 아닌 일반 단어만 있는 경우에만 제외하세요.
 
 목록:
 {items}
@@ -75,29 +76,3 @@ def top_business_names(posts, top_n=5):
     results = extract_business_names(posts)
     counter = Counter(result["name"] for result in results)
     return counter.most_common(top_n)
-
-
-def top_business_candidates(posts, top_n=5):
-    """언급 횟수와 근거 포스트를 함께 묶어 UI용 후보를 만듭니다."""
-    results = extract_business_names(posts)
-    counter = Counter(result["name"] for result in results)
-    posts_by_name = {}
-    for result in results:
-        source = result["post"]
-        sources = posts_by_name.setdefault(result["name"], [])
-        if not any(item["url"] == source["url"] for item in sources):
-            sources.append(
-                {
-                    "title": source["title"],
-                    "url": source["url"],
-                }
-            )
-
-    return [
-        {
-            "name": name,
-            "mention_count": count,
-            "sources": posts_by_name.get(name, []),
-        }
-        for name, count in counter.most_common(top_n)
-    ]
