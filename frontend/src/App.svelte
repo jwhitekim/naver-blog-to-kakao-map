@@ -71,7 +71,7 @@
 </script>
 
 <svelte:head>
-  <title>Placepick — 블로그 장소 수집기</title>
+  <title>Placepick</title>
 </svelte:head>
 
 <header class="topbar">
