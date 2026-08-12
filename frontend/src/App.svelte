@@ -255,7 +255,8 @@
                       <div class="sources">
                         {#each candidate.sources as source}
                           <a href={source.url} target="_blank" rel="noreferrer">
-                            <span>N</span>{source.title}
+                            <span class="source-badge">N</span>
+                            <span class="source-title">{source.title}</span>
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8"/><path d="M18 13v5H6V6h5"/></svg>
                           </a>
                         {/each}

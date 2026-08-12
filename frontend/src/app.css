@@ -252,10 +252,11 @@ summary { color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 60
 summary::-webkit-details-marker { display: none; }
 summary:hover { color: var(--ink); }
 .sources { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-.sources a { max-width: 100%; color: var(--muted); display: flex; align-items: center; gap: 7px; text-decoration: none; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .2s ease; }
+.sources a { max-width: 100%; min-width: 0; color: var(--muted); display: flex; align-items: flex-start; gap: 7px; text-decoration: none; font-size: 11.5px; transition: color .2s ease; }
 .sources a:hover { color: var(--ink); }
-.sources a span { width: 16px; height: 16px; flex: 0 0 auto; display: grid; place-items: center; color: white; background: #03c75a; border-radius: 4px; font-size: 9px; font-weight: 700; }
-.sources a svg { width: 12px; flex: 0 0 auto; }
+.sources a .source-badge { width: 16px; height: 16px; flex: 0 0 auto; display: grid; place-items: center; color: white; background: #03c75a; border-radius: 4px; font-size: 9px; font-weight: 700; margin-top: 1px; }
+.sources a .source-title { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; word-break: break-word; line-height: 1.5; }
+.sources a svg { width: 12px; flex: 0 0 auto; margin-top: 2px; }
 
 .link-group { display: flex; gap: 8px; }
 .map-link {
