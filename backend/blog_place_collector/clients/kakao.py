@@ -1,4 +1,5 @@
 import re
+from difflib import SequenceMatcher
 
 import requests
 
@@ -70,28 +71,46 @@ def _search_documents(
     return documents
 
 
+FUZZY_MATCH_THRESHOLD = 0.75
+
+
 def _normalize_name(text):
     return re.sub(r"\s+", "", text)
 
 
+def _similarity(a, b):
+    return SequenceMatcher(None, a, b).ratio()
+
+
 def _names_match(place_name, keyword):
+    """부분 문자열이거나(예: '오아시스' / '오아시스 한남점'), 표기가 살짝 달라도
+    (오타, 브랜드 수식어 누락, 어순 차이 등) 충분히 비슷하면 같은 상호로 취급합니다."""
     normalized_place = _normalize_name(place_name)
     normalized_keyword = _normalize_name(keyword)
-    return normalized_keyword in normalized_place or normalized_place in normalized_keyword
+    if normalized_keyword in normalized_place or normalized_place in normalized_keyword:
+        return True
+    return _similarity(normalized_place, normalized_keyword) >= FUZZY_MATCH_THRESHOLD
 
 
 def _pick_best_match(documents, keyword, require_match=False):
-    """정확히 일치하는 상호, 부분 일치 상호, 거리순 결과 순으로 선택합니다.
+    """정확히 일치하는 상호, 부분/유사 일치 상호 중 가장 비슷한 것, 거리순 결과 순으로 선택합니다.
     require_match=True면 이름이 전혀 안 맞을 때 거리순 fallback 대신 None을 반환합니다."""
     exact = [document for document in documents if document["place_name"] == keyword]
     if exact:
         return exact[0]
 
-    contains = [
+    matches = [
         document for document in documents if _names_match(document["place_name"], keyword)
     ]
-    if contains:
-        return contains[0]
+    if matches:
+        normalized_keyword = _normalize_name(keyword)
+        matches.sort(
+            key=lambda document: _similarity(
+                _normalize_name(document["place_name"]), normalized_keyword
+            ),
+            reverse=True,
+        )
+        return matches[0]
 
     if require_match:
         return None

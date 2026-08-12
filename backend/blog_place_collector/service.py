@@ -1,10 +1,11 @@
+import re
 from urllib.parse import quote
 
 import requests
 
 from blog_place_collector.clients.gemini import extract_business_names
 from blog_place_collector.clients.kakao import get_business_hours, search_place
-from blog_place_collector.clients.naver import naver_blog_search
+from blog_place_collector.clients.naver import naver_blog_search, naver_local_search
 
 
 def preview_collection(keyword, max_pages, top_n, radius):
@@ -36,12 +37,7 @@ def _verified_candidates(posts, area_keyword, radius):
     grouped = {}
     order = []
     for guess in guesses:
-        place = search_place(
-            guess["name"],
-            area_keyword=area_keyword,
-            radius=radius,
-            require_match=True,
-        )
+        place = _resolve_place(guess["name"], area_keyword=area_keyword, radius=radius)
         if not place:
             continue
 
@@ -64,6 +60,36 @@ def _verified_candidates(posts, area_keyword, radius):
     ranked = [grouped[key] for key in order]
     ranked.sort(key=lambda candidate: candidate["mention_count"], reverse=True)
     return ranked
+
+
+def _resolve_place(name, area_keyword, radius):
+    """카카오맵에서 이름 그대로 검증을 시도하고, 표기가 달라 실패하면 네이버
+    지역검색으로 실제 등록명을 얻어 한 번 더 검증합니다."""
+    place = search_place(name, area_keyword=area_keyword, radius=radius, require_match=True)
+    if place:
+        return place
+
+    try:
+        hits = naver_local_search(name, display=5)
+    except requests.RequestException:
+        return None
+
+    for hit in hits:
+        if not _loosely_related(hit["title"], name):
+            continue
+        place = search_place(
+            hit["title"], area_keyword=area_keyword, radius=radius, require_match=True
+        )
+        if place:
+            return place
+
+    return None
+
+
+def _loosely_related(a, b):
+    normalized_a = re.sub(r"\s+", "", a)
+    normalized_b = re.sub(r"\s+", "", b)
+    return normalized_a in normalized_b or normalized_b in normalized_a
 
 
 def _attach_business_hours(results):

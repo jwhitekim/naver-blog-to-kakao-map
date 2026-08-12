@@ -49,11 +49,20 @@ kakao_auth_headers = {"Authorization": f"KakaoAK {KAKAO_REST_API_KEY}"}
 
 headers = _settings["naver"]["headers"]
 
+NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
+NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
+NAVER_LOCAL_SEARCH_URL = "https://openapi.naver.com/v1/search/local.json"
+naver_open_api_headers = {
+    "X-Naver-Client-Id": NAVER_CLIENT_ID or "",
+    "X-Naver-Client-Secret": NAVER_CLIENT_SECRET or "",
+}
+
 
 def credential_status():
     """비밀값을 노출하지 않고 로컬 설정 준비 상태만 반환합니다."""
     return {
         "gemini": bool(GEMINI_API_KEY),
         "kakao_rest": bool(KAKAO_REST_API_KEY),
+        "naver_local": bool(NAVER_CLIENT_ID and NAVER_CLIENT_SECRET),
         "settings": SETTINGS_PATH.exists(),
     }
