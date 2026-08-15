@@ -117,7 +117,7 @@ label > span { display: block; margin-bottom: 8px; color: var(--ink); font-size:
   border: 1px solid var(--border);
   border-radius: 12px;
   outline: none;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 400;
   transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
