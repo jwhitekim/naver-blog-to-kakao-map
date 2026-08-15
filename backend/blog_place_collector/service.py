@@ -4,7 +4,7 @@ from urllib.parse import quote
 import requests
 
 from blog_place_collector.clients.gemini import extract_business_names, extract_regions
-from blog_place_collector.clients.kakao import get_business_hours, search_place
+from blog_place_collector.clients.kakao import get_area_anchor, get_business_hours, search_place
 from blog_place_collector.clients.naver import naver_blog_search, naver_local_search
 
 
@@ -56,9 +56,33 @@ def _verified_candidates(guesses, regions, radius):
         if not any(existing["url"] == source["url"] for existing in entry["sources"]):
             entry["sources"].append({"title": source["title"], "url": source["url"]})
 
-    ranked = [grouped[key] for key in order]
-    ranked.sort(key=lambda candidate: candidate["mention_count"], reverse=True)
-    return ranked
+    candidates = [grouped[key] for key in order]
+    return _sort_candidates(candidates, regions)
+
+
+def _sort_candidates(candidates, regions):
+    """언급 횟수가 많은 순으로 정렬합니다. 언급 횟수가 같으면, 검색 지역 기준점(첫
+    번째로 감지된 지역)에서 가까운 곳을 우선합니다. 지역 정보가 없으면 동점은
+    먼저 검증된 순서 그대로 둡니다."""
+    anchor = None
+    if regions:
+        try:
+            anchor = get_area_anchor(regions[0])
+        except ValueError:
+            anchor = None
+
+    def sort_key(candidate):
+        if anchor is None:
+            return (-candidate["mention_count"], 0)
+        distance = _distance_sq(candidate["place"]["x"], candidate["place"]["y"], *anchor)
+        return (-candidate["mention_count"], distance)
+
+    candidates.sort(key=sort_key)
+    return candidates
+
+
+def _distance_sq(x1, y1, x2, y2):
+    return (x1 - x2) ** 2 + (y1 - y2) ** 2
 
 
 def _resolve_place(name, regions, radius):
@@ -83,7 +107,7 @@ def _resolve_place(name, regions, radius):
             if place:
                 return place
 
-    return search_place(name, require_match=True, nationwide=True)
+    return search_place(name, require_match=True, nationwide=True, regions=regions)
 
 
 def _search_place_safe(name, area_keyword, radius):

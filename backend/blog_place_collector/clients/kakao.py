@@ -22,7 +22,7 @@ _kakao_map_headers = {
 _area_anchors = {}
 
 
-def _get_area_anchor(area_keyword=AREA_KEYWORD):
+def get_area_anchor(area_keyword=AREA_KEYWORD):
     """지역 대표 좌표를 구해 검색 결과의 거리 기준점으로 사용합니다."""
     if area_keyword not in _area_anchors:
         response = requests.get(
@@ -36,7 +36,7 @@ def _get_area_anchor(area_keyword=AREA_KEYWORD):
         if not documents:
             raise ValueError(f"'{area_keyword}' 지역의 기준 좌표를 찾지 못했습니다.")
         document = documents[0]
-        _area_anchors[area_keyword] = (document["x"], document["y"])
+        _area_anchors[area_keyword] = (float(document["x"]), float(document["y"]))
     return _area_anchors[area_keyword]
 
 
@@ -51,7 +51,7 @@ def _search_documents(
     nationwide=True면 지역/반경 제한 없이 전국을 대상으로 검색합니다."""
     params = {"query": keyword}
     if not nationwide:
-        anchor_x, anchor_y = _get_area_anchor(area_keyword)
+        anchor_x, anchor_y = get_area_anchor(area_keyword)
         params.update({"x": anchor_x, "y": anchor_y, "radius": radius, "sort": "distance"})
 
     documents = []
@@ -91,9 +91,29 @@ def _names_match(place_name, keyword):
     return _similarity(normalized_place, normalized_keyword) >= FUZZY_MATCH_THRESHOLD
 
 
-def _pick_best_match(documents, keyword, require_match=False):
+def _address_matches_regions(document, regions):
+    """전국 검색 결과가 실제로 지정된 지역(들) 안에 있는지 주소 문자열로 확인합니다.
+    regions가 비어 있으면(지역 정보가 아예 없던 검색) 항상 통과시킵니다."""
+    if not regions:
+        return True
+    haystacks = [
+        _normalize_name(document.get("road_address_name") or ""),
+        _normalize_name(document.get("address_name") or ""),
+    ]
+    return any(
+        _normalize_name(region) in haystack for region in regions for haystack in haystacks
+    )
+
+
+def _pick_best_match(documents, keyword, require_match=False, regions=None):
     """정확히 일치하는 상호, 부분/유사 일치 상호 중 가장 비슷한 것, 거리순 결과 순으로 선택합니다.
-    require_match=True면 이름이 전혀 안 맞을 때 거리순 fallback 대신 None을 반환합니다."""
+    require_match=True면 이름이 전혀 안 맞을 때 거리순 fallback 대신 None을 반환합니다.
+    regions가 주어지면(전국 검색일 때) 주소가 그 지역들과 무관한 결과는 제외합니다."""
+    if regions:
+        documents = [d for d in documents if _address_matches_regions(d, regions)]
+        if not documents:
+            return None
+
     exact = [document for document in documents if document["place_name"] == keyword]
     if exact:
         return exact[0]
@@ -123,18 +143,20 @@ def search_place(
     radius=KAKAO_SEARCH_RADIUS,
     require_match=False,
     nationwide=False,
+    regions=None,
 ):
     """상호명을 검색해 장소 정보(좌표·주소 등)를 반환합니다.
     require_match=True면 이름이 실제로 맞는 결과가 없을 때 None을 반환합니다
     (느슨하게 추출한 후보를 카카오맵 검색으로 검증할 때 사용).
-    nationwide=True면 지역/반경 제한 없이 전국에서 검색합니다."""
+    nationwide=True면 지역/반경 제한 없이 전국에서 검색합니다.
+    regions가 주어지면(전국 검색일 때) 그 지역들과 무관한 주소는 걸러냅니다."""
     documents = _search_documents(
         keyword, area_keyword=area_keyword, radius=radius, nationwide=nationwide
     )
     if not documents:
         return None
 
-    place = _pick_best_match(documents, keyword, require_match=require_match)
+    place = _pick_best_match(documents, keyword, require_match=require_match, regions=regions)
     if place is None:
         return None
     return {
