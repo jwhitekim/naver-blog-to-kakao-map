@@ -45,21 +45,20 @@ def _search_documents(
     area_keyword=AREA_KEYWORD,
     radius=KAKAO_SEARCH_RADIUS,
     max_pages=3,
+    nationwide=False,
 ):
-    """지역 기준점에서 가까운 장소를 최대 max_pages 페이지까지 조회합니다."""
-    anchor_x, anchor_y = _get_area_anchor(area_keyword)
+    """지역 기준점에서 가까운 장소를 최대 max_pages 페이지까지 조회합니다.
+    nationwide=True면 지역/반경 제한 없이 전국을 대상으로 검색합니다."""
+    params = {"query": keyword}
+    if not nationwide:
+        anchor_x, anchor_y = _get_area_anchor(area_keyword)
+        params.update({"x": anchor_x, "y": anchor_y, "radius": radius, "sort": "distance"})
+
     documents = []
     for page in range(1, max_pages + 1):
         response = requests.get(
             KAKAO_LOCAL_SEARCH_URL,
-            params={
-                "query": keyword,
-                "x": anchor_x,
-                "y": anchor_y,
-                "radius": radius,
-                "sort": "distance",
-                "page": page,
-            },
+            params={**params, "page": page},
             headers=kakao_auth_headers,
             timeout=10,
         )
@@ -123,11 +122,15 @@ def search_place(
     area_keyword=AREA_KEYWORD,
     radius=KAKAO_SEARCH_RADIUS,
     require_match=False,
+    nationwide=False,
 ):
     """상호명을 검색해 장소 정보(좌표·주소 등)를 반환합니다.
     require_match=True면 이름이 실제로 맞는 결과가 없을 때 None을 반환합니다
-    (느슨하게 추출한 후보를 카카오맵 검색으로 검증할 때 사용)."""
-    documents = _search_documents(keyword, area_keyword=area_keyword, radius=radius)
+    (느슨하게 추출한 후보를 카카오맵 검색으로 검증할 때 사용).
+    nationwide=True면 지역/반경 제한 없이 전국에서 검색합니다."""
+    documents = _search_documents(
+        keyword, area_keyword=area_keyword, radius=radius, nationwide=nationwide
+    )
     if not documents:
         return None
 
