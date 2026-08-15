@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onDestroy } from 'svelte';
 
   const progressMessages = [
     '블로그 포스팅을 모으고 있어요',
@@ -7,25 +7,19 @@
     '카카오맵에서 정확한 장소를 찾고 있어요'
   ];
 
+  const searchExamples = ['성수동 브런치', '제주 애월 카페', '부산 해운대 맛집'];
+
   let keyword = '';
   let maxPages = 10;
   let topN = 10;
   let radius = 5000;
-  let health = null;
   let result = null;
   let loading = false;
   let error = '';
   let progressIndex = 0;
   let progressTimer;
 
-  onMount(async () => {
-    try {
-      const response = await fetch('/api/health');
-      health = await response.json();
-    } catch {
-      health = { status: 'offline', credentials: {} };
-    }
-  });
+  onDestroy(() => clearInterval(progressTimer));
 
   async function parseResponse(response) {
     const data = await response.json().catch(() => ({}));
@@ -74,38 +68,78 @@
   <title>Placepick</title>
 </svelte:head>
 
-<header class="topbar">
-  <a class="brand" href="/" aria-label="Placepick 홈">
-    <span class="brand-mark" aria-hidden="true">
-      <svg viewBox="0 0 24 24"><path d="M12 21s6-5.13 6-11a6 6 0 1 0-12 0c0 5.87 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg>
-    </span>
-    <span>Placepick</span>
-  </a>
+<header class="site-header">
+  <div class="topbar">
+    <a class="brand" href="/" aria-label="Placepick 홈">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 21s6-5.13 6-11a6 6 0 1 0-12 0c0 5.87 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg>
+      </span>
+      <span class="brand-copy"><strong>Placepick</strong><small>blog place curator</small></span>
+    </a>
 
-  <div class="status-group">
-    <div class:offline={health?.status === 'offline'} class="server-status">
-      <span class="status-dot"></span>
-      {health === null ? '서버 확인 중' : health.status === 'ok' ? '로컬 서버 연결됨' : '서버 연결 필요'}
-    </div>
   </div>
 </header>
 
 <main>
   <section class="hero">
-    <div class="eyebrow"><span></span> Blog to map, in a few clicks</div>
-    <h1>블로그 속 좋은 장소,<br /><em>내 지도에 쏙.</em></h1>
-    <p>검색어만 입력하면 자주 언급된 장소를 찾아<br class="desktop-break" /> 카카오맵·네이버지도 링크로 바로 연결해드려요.</p>
+    <div class="hero-copy">
+      <div class="eyebrow">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3Z"/></svg>
+        AI blog place curator
+      </div>
+      <h1>검색은 짧게,<br />장소 발견은 <em>깊게.</em></h1>
+      <p>수많은 블로그 후기를 한 번에 읽고, 자주 언급된 장소만 골라 지도 링크로 정리해드려요.</p>
+      <div class="hero-points" aria-label="서비스 특징">
+        <span><i></i> 실제 블로그 언급 기반</span>
+        <span><i></i> 카카오·네이버 지도 연결</span>
+      </div>
+    </div>
+
+    <div class="hero-visual" aria-hidden="true">
+      <div class="map-canvas">
+        <svg class="map-lines" viewBox="0 0 480 360" preserveAspectRatio="none">
+          <path d="M-20 89C73 43 132 112 211 80s112-9 160-55 94-18 137 5" />
+          <path d="M82-20c-6 89 51 108 32 174s-1 130 90 226" />
+          <path d="M-30 284c98-67 139 10 235-37s147-31 306 38" />
+          <path d="M337-20c-30 79 36 120 6 187s15 129 78 213" />
+        </svg>
+        <div class="map-label label-seongsu">성수동</div>
+        <div class="map-label label-seoulforest">서울숲</div>
+        <div class="map-label label-tukseom">뚝섬</div>
+
+        <span class="map-pin pin-one"><b>1</b></span>
+        <span class="map-pin pin-two"><b>2</b></span>
+        <span class="map-pin pin-three"><b>3</b></span>
+
+        <div class="floating-place place-one">
+          <span class="place-thumbnail">☕</span>
+          <span><small>블로그 12회 언급</small><strong>어니언 성수</strong></span>
+          <b>01</b>
+        </div>
+        <div class="floating-place place-two">
+          <span class="place-thumbnail mint">🥐</span>
+          <span><small>블로그 8회 언급</small><strong>브레디포스트</strong></span>
+          <b>02</b>
+        </div>
+
+        <div class="map-summary">
+          <span class="summary-icon"><svg viewBox="0 0 24 24"><path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3Z"/></svg></span>
+          <span><strong>취향 장소 10곳</strong><small>AI가 발견했어요</small></span>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="search-panel" aria-labelledby="search-title">
     <div class="panel-heading">
       <div>
-        <span class="step-label">STEP 01</span>
+        <span class="step-label"><i>01</i> START PICKING</span>
         <h2 id="search-title">어떤 장소를 찾아볼까요?</h2>
+        <p class="panel-description">지역과 원하는 장소를 함께 입력해 주세요.</p>
       </div>
       <span class="privacy-note">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.8 2.9 8.3 7 10 4.1-1.7 7-5.2 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
-        모든 작업은 내 컴퓨터에서 실행돼요
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.13 6-11a6 6 0 1 0-12 0c0 5.87 6 11 6 11Z"/><circle cx="12" cy="10" r="2"/></svg>
+        찾은 장소는 지도에서 바로 확인해요
       </span>
     </div>
 
@@ -114,7 +148,7 @@
         <span>네이버 블로그 검색어</span>
         <div class="input-wrap">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
-          <input bind:value={keyword} maxlength="80" placeholder="" />
+          <input bind:value={keyword} maxlength="80" placeholder="예: 성수동 브런치 맛집" aria-label="네이버 블로그 검색어" />
           <button type="submit" disabled={loading || !keyword.trim()}>
             {#if loading}
               <span class="spinner"></span> 찾는 중
@@ -124,7 +158,12 @@
             {/if}
           </button>
         </div>
-        <small>지역명과 찾고 싶은 장소 유형을 함께 입력하면 더 정확해요.</small>
+        <div class="search-examples">
+          <small>이렇게 검색해 보세요</small>
+          {#each searchExamples as example}
+            <button type="button" on:click={() => (keyword = example)}>{example}</button>
+          {/each}
+        </div>
       </label>
 
       <div class="options-grid">
@@ -196,7 +235,7 @@
     <section class="results" aria-labelledby="results-title">
       <div class="results-heading">
         <div>
-          <span class="step-label">STEP 03</span>
+          <span class="step-label"><i>03</i> YOUR PICKS</span>
           <h2 id="results-title">찾은 장소를 확인해 주세요</h2>
           <p>블로그 {result.post_count}개에서 후보 {result.candidates.length}곳을 찾았어요.</p>
         </div>
