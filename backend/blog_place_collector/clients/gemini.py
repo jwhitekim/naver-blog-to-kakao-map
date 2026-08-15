@@ -18,10 +18,15 @@ RESPONSE_SCHEMA = {
 }
 
 PROMPT_TEMPLATE = """\
-아래는 네이버 블로그 검색 결과 목록입니다 (제목 + 본문 일부).
+사용자가 검색한 키워드는 "{keyword}"입니다.
+아래는 이 키워드로 찾은 네이버 블로그 검색 결과 목록입니다 (제목 + 본문 일부).
 각 항목에서 리뷰 대상으로 언급된 가게, 시설, 업체의 상호명을 추출하세요.
 
 규칙:
+- 검색 키워드가 나타내는 장소 유형·주제와 실제로 관련된 상호명만 추출하세요.
+  글이 여러 장소를 나열하는 목록형/추천형 글이더라도, 키워드와 무관한 업종·시설은 제외하세요.
+  (예: "영화관"을 검색했는데 글이 "실내 놀거리 15선"이라 아쿠아리움·전시공간도 같이 나열돼 있다면,
+  그중 영화관에 해당하는 것만 추출하고 나머지는 제외하세요.)
 - 상호명으로 보이거나 상호명으로 추측되는 표현이 있으면 확신이 없어도 최대한 추출하세요.
   실제로 존재하는 상호인지는 이후 카카오맵 검색으로 검증하니, 애매하다고 여기서 걸러내지 마세요.
 - 상호명은 카카오맵에서 검색할 수 있는 정식 명칭에 가깝게 통일하세요.
@@ -36,17 +41,17 @@ PROMPT_TEMPLATE = """\
 """
 
 
-def _build_prompt(posts):
+def _build_prompt(posts, keyword):
     numbered = "\n".join(
         f"{i}. 제목: {post['title']}\n   본문: {post['contents']}"
         for i, post in enumerate(posts, start=1)
     )
-    return PROMPT_TEMPLATE.format(items=numbered)
+    return PROMPT_TEMPLATE.format(keyword=keyword, items=numbered)
 
 
-def extract_business_names(posts):
+def extract_business_names(posts, keyword):
     payload = {
-        "contents": [{"parts": [{"text": _build_prompt(posts)}]}],
+        "contents": [{"parts": [{"text": _build_prompt(posts, keyword)}]}],
         "generationConfig": {
             "responseMimeType": "application/json",
             "responseSchema": RESPONSE_SCHEMA,
@@ -72,7 +77,7 @@ def extract_business_names(posts):
     return names
 
 
-def top_business_names(posts, top_n=5):
-    results = extract_business_names(posts)
+def top_business_names(posts, keyword, top_n=5):
+    results = extract_business_names(posts, keyword)
     counter = Counter(result["name"] for result in results)
     return counter.most_common(top_n)
