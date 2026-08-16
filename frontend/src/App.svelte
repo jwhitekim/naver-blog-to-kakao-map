@@ -72,7 +72,7 @@
   <div class="topbar">
     <a class="brand" href="/" aria-label="Placepick 홈">
       <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M12 21s6-5.13 6-11a6 6 0 1 0-12 0c0 5.87 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg>
+        <img src="/apple-touch-icon.png" alt="" />
       </span>
       <span class="brand-copy"><strong>Placepick</strong><small>blog place curator</small></span>
     </a>
@@ -117,7 +117,7 @@
           <b>01</b>
         </div>
         <div class="floating-place place-two">
-          <span class="place-thumbnail mint">🥐</span>
+          <span class="place-thumbnail lavender">🥐</span>
           <span><small>블로그 8회 언급</small><strong>브레디포스트</strong></span>
           <b>02</b>
         </div>
@@ -359,7 +359,7 @@
 <footer>
   <a class="brand footer-brand" href="/">
     <span class="brand-mark" aria-hidden="true">
-      <svg viewBox="0 0 24 24"><path d="M12 21s6-5.13 6-11a6 6 0 1 0-12 0c0 5.87 6 11 6 11Z"/><circle cx="12" cy="10" r="2.2"/></svg>
+      <img src="/apple-touch-icon.png" alt="" />
     </span>
     <span>Placepick</span>
   </a>
