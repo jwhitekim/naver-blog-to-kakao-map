@@ -79,3 +79,8 @@ cd frontend && npm run dev     # Svelte 개발 서버만 별도로 실행할 때
 저장소가 이미 `git clone`되어 있어야 하고, `git`, `docker`, `docker compose` 플러그인이
 WSL 안에 설치되어 있어야 합니다 (최초 1회는 수동으로 `git clone` 후
 `setup-nginx-https.sh`로 초기 설정하세요).
+
+## 더 읽어보기
+
+- [docs/decisions.md](docs/decisions.md) — 상호명 추출·지역/반경 처리·매칭 로직을
+  왜 지금 방식으로 짰는지, 어떤 대안을 검토하고 기각했는지 기록한 설계 노트.
