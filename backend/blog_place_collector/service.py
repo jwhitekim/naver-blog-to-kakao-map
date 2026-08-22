@@ -11,28 +11,57 @@ from blog_place_collector.clients.gemini import (
 from blog_place_collector.clients.kakao import get_area_anchor, get_business_hours, search_place
 from blog_place_collector.clients.naver import naver_blog_search, naver_local_search
 
+# 사용자가 직접 고르던 값들을 상수로 고정합니다. 대신 수집 페이지 수는 결과가
+# 빈약하면(distinct 후보가 적거나 전부 1회 언급) 자동으로 늘려서 재수집합니다.
+PAGE_TIERS = [5, 15, 30]
+DEFAULT_RADIUS = 5000
+DEFAULT_TOP_N = 10
+MIN_CANDIDATES = 10
+MIN_REGIONS = 3
+MIN_TOP_MENTION = 2
 
-def overview_collection(keyword, max_pages):
+
+def _has_enough_signal(items, min_items, min_top_mention):
+    """items가 충분히 모였는지 판단합니다. candidates(상호명 카드)와 regions(개요)
+    둘 다 mention_count 필드를 가지므로 그대로 재사용합니다."""
+    return len(items) >= min_items and items and items[0]["mention_count"] >= min_top_mention
+
+
+def overview_collection(keyword):
     """넓은 여행 키워드를 지역별 카테고리 구조(언급 빈도 포함)로 정리합니다.
     상호명은 뽑지 않습니다 — 사용자가 지역+카테고리를 고르면 preview_collection으로 넘어갑니다."""
-    posts = naver_blog_search(keyword=keyword, max_pages=max_pages)
-    if not posts:
-        return {"post_count": 0, "regions": []}
+    regions = []
+    post_count = 0
+    for max_pages in PAGE_TIERS:
+        posts = naver_blog_search(keyword=keyword, max_pages=max_pages)
+        post_count = len(posts)
+        if not posts:
+            break
 
-    regions = extract_region_overview(posts, keyword)
-    return {"post_count": len(posts), "regions": regions}
+        regions = extract_region_overview(posts, keyword)
+        if _has_enough_signal(regions, MIN_REGIONS, MIN_TOP_MENTION):
+            break
+
+    return {"post_count": post_count, "regions": regions}
 
 
-def preview_collection(keyword, max_pages, top_n, radius):
+def preview_collection(keyword):
     """수집부터 장소 매칭까지 실행하되 즐겨찾기는 변경하지 않습니다."""
-    posts = naver_blog_search(keyword=keyword, max_pages=max_pages)
-    if not posts:
-        return {"post_count": 0, "candidates": []}
+    candidates = []
+    post_count = 0
+    for max_pages in PAGE_TIERS:
+        posts = naver_blog_search(keyword=keyword, max_pages=max_pages)
+        post_count = len(posts)
+        if not posts:
+            break
 
-    regions = extract_regions(keyword)
-    guesses = extract_business_names(posts, keyword)
-    candidates = _verified_candidates(guesses, regions=regions, radius=radius)
-    top_candidates = candidates[:top_n]
+        regions = extract_regions(keyword)
+        guesses = extract_business_names(posts, keyword)
+        candidates = _verified_candidates(guesses, regions=regions, radius=DEFAULT_RADIUS)
+        if _has_enough_signal(candidates, MIN_CANDIDATES, MIN_TOP_MENTION):
+            break
+
+    top_candidates = candidates[:DEFAULT_TOP_N]
 
     for candidate in top_candidates:
         candidate["naver_search_url"] = f"https://map.naver.com/p/search/{quote(candidate['name'])}"
@@ -40,7 +69,7 @@ def preview_collection(keyword, max_pages, top_n, radius):
     _attach_business_hours(top_candidates)
 
     return {
-        "post_count": len(posts),
+        "post_count": post_count,
         "candidates": top_candidates,
     }
 

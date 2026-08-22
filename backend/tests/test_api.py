@@ -45,12 +45,7 @@ class ApiTestCase(unittest.TestCase):
 
         response = self.client.post(
             "/api/collections/preview",
-            json={
-                "keyword": "성수동 카페",
-                "max_pages": 5,
-                "top_n": 5,
-                "radius": 3000,
-            },
+            json={"keyword": "성수동 카페"},
         )
 
         self.assertEqual(response.status_code, 200)
@@ -72,7 +67,7 @@ class ApiTestCase(unittest.TestCase):
 
         response = self.client.post(
             "/api/collections/overview",
-            json={"keyword": "부산여행", "max_pages": 10},
+            json={"keyword": "부산여행"},
         )
 
         self.assertEqual(response.status_code, 200)
@@ -80,15 +75,10 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(response.json()["query"], "부산여행")
         self.assertEqual(response.json()["regions"][0]["name"], "서면")
 
-    def test_preview_validates_limits(self):
+    def test_preview_validates_keyword_length(self):
         response = self.client.post(
             "/api/collections/preview",
-            json={
-                "keyword": "성수동 카페",
-                "max_pages": 31,
-                "top_n": 5,
-                "radius": 3000,
-            },
+            json={"keyword": "가"},
         )
 
         self.assertEqual(response.status_code, 422)

@@ -28,14 +28,10 @@ app.add_middleware(
 
 class PreviewRequest(BaseModel):
     keyword: str = Field(min_length=2, max_length=80)
-    max_pages: int = Field(default=10, ge=1, le=30)
-    top_n: int = Field(default=10, ge=1, le=20)
-    radius: int = Field(default=5000, ge=100, le=20000)
 
 
 class OverviewRequest(BaseModel):
     keyword: str = Field(min_length=2, max_length=80)
-    max_pages: int = Field(default=10, ge=1, le=30)
 
 
 def _friendly_error(error):
@@ -64,13 +60,7 @@ def health():
 @app.post("/api/collections/preview")
 async def preview(payload: PreviewRequest):
     try:
-        result = await run_in_threadpool(
-            preview_collection,
-            payload.keyword.strip(),
-            payload.max_pages,
-            payload.top_n,
-            payload.radius,
-        )
+        result = await run_in_threadpool(preview_collection, payload.keyword.strip())
         return {
             "query": payload.keyword.strip(),
             **result,
@@ -82,11 +72,7 @@ async def preview(payload: PreviewRequest):
 @app.post("/api/collections/overview")
 async def overview(payload: OverviewRequest):
     try:
-        result = await run_in_threadpool(
-            overview_collection,
-            payload.keyword.strip(),
-            payload.max_pages,
-        )
+        result = await run_in_threadpool(overview_collection, payload.keyword.strip())
         return {
             "query": payload.keyword.strip(),
             **result,
