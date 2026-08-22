@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from blog_place_collector.config import credential_status
-from blog_place_collector.service import overview_collection, preview_collection
+from blog_place_collector.service import preview_collection, search_collection
 
 app = FastAPI(
     title="Placepick API",
@@ -27,10 +27,6 @@ app.add_middleware(
 
 
 class PreviewRequest(BaseModel):
-    keyword: str = Field(min_length=2, max_length=80)
-
-
-class OverviewRequest(BaseModel):
     keyword: str = Field(min_length=2, max_length=80)
 
 
@@ -69,10 +65,10 @@ async def preview(payload: PreviewRequest):
         raise HTTPException(status_code=502, detail=_friendly_error(error)) from error
 
 
-@app.post("/api/collections/overview")
-async def overview(payload: OverviewRequest):
+@app.post("/api/collections/search")
+async def search(payload: PreviewRequest):
     try:
-        result = await run_in_threadpool(overview_collection, payload.keyword.strip())
+        result = await run_in_threadpool(search_collection, payload.keyword.strip())
         return {
             "query": payload.keyword.strip(),
             **result,

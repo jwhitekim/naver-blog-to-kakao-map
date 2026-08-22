@@ -12,42 +12,30 @@ from blog_place_collector.clients.kakao import get_area_anchor, get_business_hou
 from blog_place_collector.clients.naver import naver_blog_search, naver_local_search
 
 # 사용자가 직접 고르던 값들을 상수로 고정합니다. 대신 수집 페이지 수는 결과가
-# 빈약하면(distinct 후보가 적거나 전부 1회 언급) 자동으로 늘려서 재수집합니다.
+# 빈약하면(distinct 후보가 적거나 반복 언급이 없음) 자동으로 늘려서 재수집합니다.
 PAGE_TIERS = [5, 15, 30]
 DEFAULT_RADIUS = 5000
 DEFAULT_TOP_N = 10
 MIN_CANDIDATES = 10
-MIN_REGIONS = 3
-MIN_TOP_MENTION = 2
+MIN_REPEAT_MENTION = 2
+MIN_REPEATED_CANDIDATES = 5
 
 
-def _has_enough_signal(items, min_items, min_top_mention):
-    """items가 충분히 모였는지 판단합니다. candidates(상호명 카드)와 regions(개요)
-    둘 다 mention_count 필드를 가지므로 그대로 재사용합니다."""
-    return len(items) >= min_items and items and items[0]["mention_count"] >= min_top_mention
+def _enough_repeat_candidates(candidates):
+    """상호명 후보가 "확실한 결과"로 보여줄 만큼 모였는지 판단합니다. 단순히 1등
+    후보의 언급 횟수만 보면 "부산여행"처럼 넓은 검색도 우연히 통과해버립니다
+    (10개 후보를 채웠는데 1등만 2회, 나머지는 다 1회) — 실측 확인. 그래서 "2회 이상
+    언급된 후보가 몇 개나 있는지"로 봅니다. 이 기준을 tier 반복 중단과 최종
+    결과/개요 판단에 동일하게 씁니다."""
+    repeated = sum(1 for c in candidates if c["mention_count"] >= MIN_REPEAT_MENTION)
+    return len(candidates) >= MIN_CANDIDATES and repeated >= MIN_REPEATED_CANDIDATES
 
 
-def overview_collection(keyword):
-    """넓은 여행 키워드를 지역별 카테고리 구조(언급 빈도 포함)로 정리합니다.
-    상호명은 뽑지 않습니다 — 사용자가 지역+카테고리를 고르면 preview_collection으로 넘어갑니다."""
-    regions = []
-    post_count = 0
-    for max_pages in PAGE_TIERS:
-        posts = naver_blog_search(keyword=keyword, max_pages=max_pages)
-        post_count = len(posts)
-        if not posts:
-            break
-
-        regions = extract_region_overview(posts, keyword)
-        if _has_enough_signal(regions, MIN_REGIONS, MIN_TOP_MENTION):
-            break
-
-    return {"post_count": post_count, "regions": regions}
-
-
-def preview_collection(keyword):
-    """수집부터 장소 매칭까지 실행하되 즐겨찾기는 변경하지 않습니다."""
+def _collect_candidates(keyword):
+    """PAGE_TIERS를 시도하며 상호명 후보를 수집·검증합니다. 마지막으로 수집한 posts도
+    함께 반환합니다 — 개요로 전환할 때 재수집 없이 그대로 재사용하기 위해서입니다."""
     candidates = []
+    posts = []
     post_count = 0
     for max_pages in PAGE_TIERS:
         posts = naver_blog_search(keyword=keyword, max_pages=max_pages)
@@ -58,20 +46,42 @@ def preview_collection(keyword):
         regions = extract_regions(keyword)
         guesses = extract_business_names(posts, keyword)
         candidates = _verified_candidates(guesses, regions=regions, radius=DEFAULT_RADIUS)
-        if _has_enough_signal(candidates, MIN_CANDIDATES, MIN_TOP_MENTION):
+        if _enough_repeat_candidates(candidates):
             break
 
-    top_candidates = candidates[:DEFAULT_TOP_N]
+    return post_count, posts, candidates
 
+
+def _finalize_candidates(candidates):
+    top_candidates = candidates[:DEFAULT_TOP_N]
     for candidate in top_candidates:
         candidate["naver_search_url"] = f"https://map.naver.com/p/search/{quote(candidate['name'])}"
-
     _attach_business_hours(top_candidates)
+    return top_candidates
 
-    return {
-        "post_count": post_count,
-        "candidates": top_candidates,
-    }
+
+def preview_collection(keyword):
+    """수집부터 장소 매칭까지 실행하되 즐겨찾기는 변경하지 않습니다.
+    지역+카테고리를 이미 확정한 드릴다운 검색에 씁니다(자동판단 없이 곧장 상세 결과)."""
+    post_count, _posts, candidates = _collect_candidates(keyword)
+    return {"post_count": post_count, "candidates": _finalize_candidates(candidates)}
+
+
+def search_collection(keyword):
+    """검색어 하나로 상세 결과와 지역 개요 중 뭘 보여줄지 자동으로 판단합니다.
+    상세 검색(카카오 검증까지)을 먼저 시도하고, 결과가 확실하면 그대로 보여주고,
+    빈약하면 이미 수집해둔 글을 재사용해 지역별 개요로 전환합니다."""
+    post_count, posts, candidates = _collect_candidates(keyword)
+
+    if not posts or _enough_repeat_candidates(candidates):
+        return {
+            "mode": "results",
+            "post_count": post_count,
+            "candidates": _finalize_candidates(candidates),
+        }
+
+    regions = extract_region_overview(posts, keyword)
+    return {"mode": "overview", "post_count": post_count, "regions": regions}
 
 
 def _verified_candidates(guesses, regions, radius):

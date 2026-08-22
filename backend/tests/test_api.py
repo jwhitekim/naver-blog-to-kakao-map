@@ -52,9 +52,10 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(response.json()["post_count"], 7)
         self.assertEqual(response.json()["query"], "성수동 카페")
 
-    @patch("blog_place_collector.api.overview_collection")
-    def test_overview_returns_regions(self, overview_collection):
-        overview_collection.return_value = {
+    @patch("blog_place_collector.api.search_collection")
+    def test_search_returns_overview_mode(self, search_collection):
+        search_collection.return_value = {
+            "mode": "overview",
             "post_count": 35,
             "regions": [
                 {
@@ -66,14 +67,34 @@ class ApiTestCase(unittest.TestCase):
         }
 
         response = self.client.post(
-            "/api/collections/overview",
+            "/api/collections/search",
             json={"keyword": "부산여행"},
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["mode"], "overview")
         self.assertEqual(response.json()["post_count"], 35)
         self.assertEqual(response.json()["query"], "부산여행")
         self.assertEqual(response.json()["regions"][0]["name"], "서면")
+
+    @patch("blog_place_collector.api.search_collection")
+    def test_search_returns_results_mode(self, search_collection):
+        search_collection.return_value = {
+            "mode": "results",
+            "post_count": 35,
+            "candidates": [
+                {"name": "테스트 카페", "mention_count": 3, "sources": [], "place": None}
+            ],
+        }
+
+        response = self.client.post(
+            "/api/collections/search",
+            json={"keyword": "성수동 브런치"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["mode"], "results")
+        self.assertEqual(response.json()["candidates"][0]["name"], "테스트 카페")
 
     def test_preview_validates_keyword_length(self):
         response = self.client.post(
