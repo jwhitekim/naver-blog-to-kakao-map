@@ -1,4 +1,5 @@
 import re
+from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import quote
 
 import requests
@@ -19,6 +20,10 @@ MAX_TOP_N = 30
 MIN_CANDIDATES = 10
 MIN_REPEAT_MENTION = 2
 MIN_REPEATED_CANDIDATES = 5
+# 카카오 검증(_verified_candidates)이 전체 검색 시간의 절반 이상을 차지하는 게
+# 실측으로 확인됐습니다(30페이지 기준 약 30초/56초). I/O 대기가 대부분이라
+# 여러 이름을 동시에 검증합니다.
+VERIFY_WORKERS = 8
 
 
 def _enough_repeat_candidates(candidates):
@@ -135,11 +140,30 @@ def search_collection(keyword):
 
 def _verified_candidates(guesses, regions, radius):
     """LLM이 느슨하게 추출한 후보를 카카오맵 검색으로 검증합니다.
-    실제로 존재하는 장소만 남기고, 카카오맵 장소 ID 기준으로 묶어 언급 횟수 순으로 정렬합니다."""
+    실제로 존재하는 장소만 남기고, 카카오맵 장소 ID 기준으로 묶어 언급 횟수 순으로 정렬합니다.
+
+    같은 이름이 여러 글에서 반복 추출돼도 카카오 검증은 이름당 한 번만 하고(중복
+    호출 제거), 남은 서로 다른 이름들은 동시에 검증합니다 — 순차 호출이 전체
+    검색 시간의 절반 이상을 차지하는 게 실측으로 확인됐습니다."""
+    posts_by_name = {}
+    order_names = []
+    for guess in guesses:
+        name = guess["name"]
+        if name not in posts_by_name:
+            posts_by_name[name] = []
+            order_names.append(name)
+        posts_by_name[name].append(guess["post"])
+
+    def resolve(name):
+        return name, _resolve_place(name, regions=regions, radius=radius)
+
+    with ThreadPoolExecutor(max_workers=VERIFY_WORKERS) as executor:
+        places_by_name = dict(executor.map(resolve, order_names))
+
     grouped = {}
     order = []
-    for guess in guesses:
-        place = _resolve_place(guess["name"], regions=regions, radius=radius)
+    for name in order_names:
+        place = places_by_name[name]
         if not place:
             continue
 
@@ -154,10 +178,10 @@ def _verified_candidates(guesses, regions, radius):
             order.append(key)
 
         entry = grouped[key]
-        entry["mention_count"] += 1
-        source = guess["post"]
-        if not any(existing["url"] == source["url"] for existing in entry["sources"]):
-            entry["sources"].append({"title": source["title"], "url": source["url"]})
+        for source in posts_by_name[name]:
+            entry["mention_count"] += 1
+            if not any(existing["url"] == source["url"] for existing in entry["sources"]):
+                entry["sources"].append({"title": source["title"], "url": source["url"]})
 
     candidates = [grouped[key] for key in order]
     return _sort_candidates(candidates, regions)
