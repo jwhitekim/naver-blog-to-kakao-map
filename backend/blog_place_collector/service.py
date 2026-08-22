@@ -15,7 +15,7 @@ from blog_place_collector.clients.naver import naver_blog_search, naver_local_se
 # 빈약하면(distinct 후보가 적거나 반복 언급이 없음) 자동으로 늘려서 재수집합니다.
 PAGE_TIERS = [5, 15, 30]
 DEFAULT_RADIUS = 5000
-DEFAULT_TOP_N = 10
+MAX_TOP_N = 30
 MIN_CANDIDATES = 10
 MIN_REPEAT_MENTION = 2
 MIN_REPEATED_CANDIDATES = 5
@@ -33,10 +33,16 @@ def _enough_repeat_candidates(candidates):
 
 def _collect_candidates(keyword):
     """PAGE_TIERS를 시도하며 상호명 후보를 수집·검증합니다. 마지막으로 수집한 posts도
-    함께 반환합니다 — 개요로 전환할 때 재수집 없이 그대로 재사용하기 위해서입니다."""
+    함께 반환합니다 — 개요로 전환할 때 재수집 없이 그대로 재사용하기 위해서입니다.
+
+    확신 후보(2회 이상 언급)가 최소 기준을 넘겨도, 직전 tier보다 여전히 늘고 있으면
+    "더 넓은 지역일 수 있다"고 보고 계속 다음 tier로 진행합니다. 늘지 않거나(정체)
+    줄어들면 그 시점에서 멈춥니다 — 좁은 지역명은 tier 1에서 빨리 끝나고, 넓은
+    지역명은 신호가 계속 느는 동안 더 많은 글을 모으게 됩니다."""
     candidates = []
     posts = []
     post_count = 0
+    previous_confirmed = 0
     for max_pages in PAGE_TIERS:
         posts = naver_blog_search(keyword=keyword, max_pages=max_pages)
         post_count = len(posts)
@@ -46,14 +52,25 @@ def _collect_candidates(keyword):
         regions = extract_regions(keyword)
         guesses = extract_business_names(posts, keyword)
         candidates = _verified_candidates(guesses, regions=regions, radius=DEFAULT_RADIUS)
-        if _enough_repeat_candidates(candidates):
+
+        confirmed = sum(1 for c in candidates if c["mention_count"] >= MIN_REPEAT_MENTION)
+        if confirmed >= MIN_REPEATED_CANDIDATES and confirmed <= previous_confirmed:
             break
+        previous_confirmed = confirmed
 
     return post_count, posts, candidates
 
 
 def _finalize_candidates(candidates):
-    top_candidates = candidates[:DEFAULT_TOP_N]
+    """확신 후보(2회 이상 언급)를 최대 MAX_TOP_N개까지 모두 보여줍니다. 확신 후보가
+    MIN_REPEATED_CANDIDATES에 못 미치면(좁은 검색) 결과가 텅 비어 보이지 않도록
+    1회 언급 후보까지 포함해 상위 5개를 채웁니다."""
+    confirmed = [c for c in candidates if c["mention_count"] >= MIN_REPEAT_MENTION]
+    if len(confirmed) >= MIN_REPEATED_CANDIDATES:
+        top_candidates = confirmed[:MAX_TOP_N]
+    else:
+        top_candidates = candidates[:MIN_REPEATED_CANDIDATES]
+
     for candidate in top_candidates:
         candidate["naver_search_url"] = f"https://map.naver.com/p/search/{quote(candidate['name'])}"
     _attach_business_hours(top_candidates)
