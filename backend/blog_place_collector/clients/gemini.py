@@ -53,6 +53,50 @@ PROMPT_TEMPLATE = """\
 {items}
 """
 
+OVERVIEW_SCHEMA = {
+    "type": "ARRAY",
+    "items": {
+        "type": "OBJECT",
+        "properties": {
+            "name": {"type": "STRING"},
+            "mention_count": {"type": "INTEGER"},
+            "categories": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "name": {"type": "STRING"},
+                        "mention_count": {"type": "INTEGER"},
+                    },
+                    "required": ["name", "mention_count"],
+                },
+            },
+        },
+        "required": ["name", "mention_count", "categories"],
+    },
+}
+
+OVERVIEW_PROMPT_TEMPLATE = """\
+당신은 여행 블로그 게시글들을 분석해 지역과 카테고리 구조로 정리하는 어시스턴트입니다.
+사용자가 검색한 키워드는 "{keyword}"입니다.
+아래는 이 키워드로 찾은 네이버 블로그 검색 결과 목록입니다 (제목 + 본문 일부).
+
+작업:
+1. 게시글 전체에서 언급된 지역(동/거리 단위)을 추출하세요. 예: 서면, 전포, 해운대, 광안리, 남포동
+2. 각 지역별로 언급된 장소 카테고리를 추출하세요. 예: 카페, 맛집, 야경/포토스팟, 술집, 관광지, 숙소
+3. 같은 지역·카테고리 조합이 여러 게시글에서 반복 언급되면 언급 빈도로 집계하세요.
+4. 실제 상호명은 이 단계에서 추출하지 마세요. 지역/카테고리 구조만 만드세요.
+   (상호명 추출은 사용자가 지역+카테고리를 고른 다음 단계에서 별도로 처리합니다)
+5. 검색 키워드("{keyword}")와 관련 없는 지역/카테고리는 제외하세요.
+
+주의사항:
+- mention_count는 실제 등장 횟수에 근거해 추정하세요. 임의로 만들지 마세요.
+- 지역명은 행정동보다 실제 블로거들이 쓰는 명칭(예: "전포동" 대신 "전포")을 우선하세요.
+
+목록:
+{items}
+"""
+
 
 def _call_gemini(prompt, response_schema):
     # temperature=0: 같은 입력이면 같은 결과가 나오게 합니다. 기본 temperature(샘플링
@@ -85,12 +129,15 @@ def extract_regions(keyword):
     return [region.strip() for region in regions if region.strip()]
 
 
-def _build_prompt(posts, keyword):
-    numbered = "\n".join(
+def _numbered_posts(posts):
+    return "\n".join(
         f"{i}. 제목: {post['title']}\n   본문: {post['contents']}"
         for i, post in enumerate(posts, start=1)
     )
-    return PROMPT_TEMPLATE.format(keyword=keyword, items=numbered)
+
+
+def _build_prompt(posts, keyword):
+    return PROMPT_TEMPLATE.format(keyword=keyword, items=_numbered_posts(posts))
 
 
 def extract_business_names(posts, keyword):
@@ -109,3 +156,11 @@ def top_business_names(posts, keyword, top_n=5):
     results = extract_business_names(posts, keyword)
     counter = Counter(result["name"] for result in results)
     return counter.most_common(top_n)
+
+
+def extract_region_overview(posts, keyword):
+    """블로그 글에서 지역별 카테고리 구조(언급 빈도 포함)를 추출합니다. 상호명은
+    이 단계에서 뽑지 않고, 사용자가 지역+카테고리를 고른 뒤 extract_business_names로
+    별도 처리합니다."""
+    prompt = OVERVIEW_PROMPT_TEMPLATE.format(keyword=keyword, items=_numbered_posts(posts))
+    return _call_gemini(prompt, OVERVIEW_SCHEMA)

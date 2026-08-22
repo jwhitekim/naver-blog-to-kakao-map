@@ -3,9 +3,24 @@ from urllib.parse import quote
 
 import requests
 
-from blog_place_collector.clients.gemini import extract_business_names, extract_regions
+from blog_place_collector.clients.gemini import (
+    extract_business_names,
+    extract_region_overview,
+    extract_regions,
+)
 from blog_place_collector.clients.kakao import get_area_anchor, get_business_hours, search_place
 from blog_place_collector.clients.naver import naver_blog_search, naver_local_search
+
+
+def overview_collection(keyword, max_pages):
+    """넓은 여행 키워드를 지역별 카테고리 구조(언급 빈도 포함)로 정리합니다.
+    상호명은 뽑지 않습니다 — 사용자가 지역+카테고리를 고르면 preview_collection으로 넘어갑니다."""
+    posts = naver_blog_search(keyword=keyword, max_pages=max_pages)
+    if not posts:
+        return {"post_count": 0, "regions": []}
+
+    regions = extract_region_overview(posts, keyword)
+    return {"post_count": len(posts), "regions": regions}
 
 
 def preview_collection(keyword, max_pages, top_n, radius):
