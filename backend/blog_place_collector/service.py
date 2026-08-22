@@ -31,9 +31,39 @@ def _enough_repeat_candidates(candidates):
     return len(candidates) >= MIN_CANDIDATES and repeated >= MIN_REPEATED_CANDIDATES
 
 
+# 확신 후보가 개수 기준(MIN_REPEATED_CANDIDATES)을 넘겨도, 후보들이 검색 지역
+# 기준점에서 너무 멀리 흩어져 있으면(예: "부산여행"이 해운대 호텔·기장 사찰·남포동
+# 시장·서면 백화점을 한 목록에 뒤섞어 보여줌) 평평한 결과 목록보다 지역별 개요가
+# 낫습니다. 최대 거리(outlier 하나)로 재면 카카오 매칭이 잘못돼 멀리 튄 후보 하나
+# 때문에 "강남 맛집"처럼 정상적으로 묶이는 검색까지 오판하는 문제가 있어서(실측),
+# "기준점 5km 안에 확신 후보의 몇 %가 있는지"로 판단합니다.
+# 실측: "강남 맛집"은 82~97%가 5km 안에 모이고, "부산여행"은 53~63%만 5km 안에
+# 있고 나머지는 7~15km 밖(다른 동네)에 흩어짐. 여유를 두고 70%를 기준으로 삼습니다.
+SCATTER_RADIUS_KM = 5
+SCATTER_MIN_CLUSTER_FRACTION = 0.7
+
+
+def _is_scattered(candidates, regions):
+    confirmed = [c for c in candidates if c["mention_count"] >= MIN_REPEAT_MENTION and c["place"]]
+    if len(confirmed) < 2 or not regions:
+        return False
+    try:
+        anchor = get_area_anchor(regions[0])
+    except ValueError:
+        return False
+
+    within_radius = sum(
+        1
+        for c in confirmed
+        if (_distance_sq(c["place"]["x"], c["place"]["y"], *anchor) ** 0.5) * 100 <= SCATTER_RADIUS_KM
+    )
+    return within_radius / len(confirmed) < SCATTER_MIN_CLUSTER_FRACTION
+
+
 def _collect_candidates(keyword):
-    """PAGE_TIERS를 시도하며 상호명 후보를 수집·검증합니다. 마지막으로 수집한 posts도
-    함께 반환합니다 — 개요로 전환할 때 재수집 없이 그대로 재사용하기 위해서입니다.
+    """PAGE_TIERS를 시도하며 상호명 후보를 수집·검증합니다. 마지막으로 수집한 posts와
+    감지된 지역도 함께 반환합니다 — 개요 전환이나 흩어짐 판단에 재수집/재호출 없이
+    그대로 재사용하기 위해서입니다.
 
     확신 후보(2회 이상 언급)가 최소 기준을 넘겨도, 직전 tier보다 여전히 늘고 있으면
     "더 넓은 지역일 수 있다"고 보고 계속 다음 tier로 진행합니다. 늘지 않거나(정체)
@@ -42,6 +72,7 @@ def _collect_candidates(keyword):
     candidates = []
     posts = []
     post_count = 0
+    regions = []
     previous_confirmed = 0
     for max_pages in PAGE_TIERS:
         posts = naver_blog_search(keyword=keyword, max_pages=max_pages)
@@ -58,7 +89,7 @@ def _collect_candidates(keyword):
             break
         previous_confirmed = confirmed
 
-    return post_count, posts, candidates
+    return post_count, posts, candidates, regions
 
 
 def _finalize_candidates(candidates):
@@ -80,25 +111,26 @@ def _finalize_candidates(candidates):
 def preview_collection(keyword):
     """수집부터 장소 매칭까지 실행하되 즐겨찾기는 변경하지 않습니다.
     지역+카테고리를 이미 확정한 드릴다운 검색에 씁니다(자동판단 없이 곧장 상세 결과)."""
-    post_count, _posts, candidates = _collect_candidates(keyword)
+    post_count, _posts, candidates, _regions = _collect_candidates(keyword)
     return {"post_count": post_count, "candidates": _finalize_candidates(candidates)}
 
 
 def search_collection(keyword):
     """검색어 하나로 상세 결과와 지역 개요 중 뭘 보여줄지 자동으로 판단합니다.
-    상세 검색(카카오 검증까지)을 먼저 시도하고, 결과가 확실하면 그대로 보여주고,
-    빈약하면 이미 수집해둔 글을 재사용해 지역별 개요로 전환합니다."""
-    post_count, posts, candidates = _collect_candidates(keyword)
+    상세 검색(카카오 검증까지)을 먼저 시도하고, 결과가 확실하고 한 지역에 묶여 있으면
+    그대로 보여주고, 빈약하거나 여러 지역에 흩어져 있으면 이미 수집해둔 글을
+    재사용해 지역별 개요로 전환합니다."""
+    post_count, posts, candidates, regions = _collect_candidates(keyword)
 
-    if not posts or _enough_repeat_candidates(candidates):
+    if not posts or (_enough_repeat_candidates(candidates) and not _is_scattered(candidates, regions)):
         return {
             "mode": "results",
             "post_count": post_count,
             "candidates": _finalize_candidates(candidates),
         }
 
-    regions = extract_region_overview(posts, keyword)
-    return {"mode": "overview", "post_count": post_count, "regions": regions}
+    overview_regions = extract_region_overview(posts, keyword)
+    return {"mode": "overview", "post_count": post_count, "regions": overview_regions}
 
 
 def _verified_candidates(guesses, regions, radius):
