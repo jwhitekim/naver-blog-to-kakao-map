@@ -3,20 +3,13 @@
 
   const progressMessages = [
     '블로그 포스팅을 모으고 있어요',
-    'AI가 상호명을 구분하고 있어요',
-    '결과가 부족하면 더 찾아보고 있어요',
-    '카카오맵에서 정확한 장소를 찾고 있어요'
+    'AI가 내용을 분석하고 있어요',
+    '결과가 부족하면 지역별로 정리해서 보여드려요',
+    '최종 결과를 정리하고 있어요'
   ];
 
-  const overviewProgressMessages = [
-    '블로그 포스팅을 모으고 있어요',
-    '결과가 부족하면 더 찾아보고 있어요',
-    'AI가 지역과 카테고리를 정리하고 있어요'
-  ];
+  const searchExamples = ['성수동 브런치', '제주 애월 카페', '부산여행'];
 
-  const searchExamples = ['성수동 브런치', '제주 애월 카페', '부산 해운대 맛집'];
-
-  let mode = 'quick'; // 'quick' | 'overview'
   let keyword = '';
   let result = null;
   let overviewResult = null;
@@ -24,8 +17,6 @@
   let error = '';
   let progressIndex = 0;
   let progressTimer;
-
-  $: currentProgressMessages = mode === 'overview' ? overviewProgressMessages : progressMessages;
 
   onDestroy(() => clearInterval(progressTimer));
 
@@ -37,10 +28,6 @@
     return data;
   }
 
-  function handleSubmit() {
-    return mode === 'overview' ? searchOverview() : search();
-  }
-
   async function search() {
     if (!keyword.trim() || loading) return;
     loading = true;
@@ -49,7 +36,37 @@
     overviewResult = null;
     progressIndex = 0;
     progressTimer = setInterval(() => {
-      progressIndex = Math.min(progressIndex + 1, currentProgressMessages.length - 1);
+      progressIndex = Math.min(progressIndex + 1, progressMessages.length - 1);
+    }, 4500);
+
+    try {
+      const response = await fetch('/api/collections/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword: keyword.trim() })
+      });
+      const data = await parseResponse(response);
+      if (data.mode === 'overview') {
+        overviewResult = data;
+      } else {
+        result = data;
+      }
+    } catch (requestError) {
+      error = requestError.message;
+    } finally {
+      clearInterval(progressTimer);
+      loading = false;
+    }
+  }
+
+  async function exploreCategory(regionName, categoryName) {
+    keyword = `${regionName} ${categoryName}`;
+    overviewResult = null;
+    error = '';
+    loading = true;
+    progressIndex = 0;
+    progressTimer = setInterval(() => {
+      progressIndex = Math.min(progressIndex + 1, progressMessages.length - 1);
     }, 4500);
 
     try {
@@ -65,39 +82,6 @@
       clearInterval(progressTimer);
       loading = false;
     }
-  }
-
-  async function searchOverview() {
-    if (!keyword.trim() || loading) return;
-    loading = true;
-    error = '';
-    overviewResult = null;
-    result = null;
-    progressIndex = 0;
-    progressTimer = setInterval(() => {
-      progressIndex = Math.min(progressIndex + 1, currentProgressMessages.length - 1);
-    }, 4500);
-
-    try {
-      const response = await fetch('/api/collections/overview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword: keyword.trim() })
-      });
-      overviewResult = await parseResponse(response);
-    } catch (requestError) {
-      error = requestError.message;
-    } finally {
-      clearInterval(progressTimer);
-      loading = false;
-    }
-  }
-
-  function exploreCategory(regionName, categoryName) {
-    keyword = `${regionName} ${categoryName}`;
-    mode = 'quick';
-    overviewResult = null;
-    search();
   }
 </script>
 
@@ -172,7 +156,7 @@
       <div>
         <span class="step-label"><i>01</i> START PICKING</span>
         <h2 id="search-title">어떤 장소를 찾아볼까요?</h2>
-        <p class="panel-description">지역과 원하는 장소를 함께 입력해 주세요.</p>
+        <p class="panel-description">구체적으로 입력하면 바로, 넓게 입력해도 알아서 정리해드려요.</p>
       </div>
       <span class="privacy-note">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.13 6-11a6 6 0 1 0-12 0c0 5.87 6 11 6 11Z"/><circle cx="12" cy="10" r="2"/></svg>
@@ -180,12 +164,7 @@
       </span>
     </div>
 
-    <div class="mode-tabs" role="tablist" aria-label="검색 모드">
-      <button type="button" role="tab" aria-selected={mode === 'quick'} class:active={mode === 'quick'} on:click={() => (mode = 'quick')}>빠른 검색</button>
-      <button type="button" role="tab" aria-selected={mode === 'overview'} class:active={mode === 'overview'} on:click={() => (mode = 'overview')}>여행지 개요</button>
-    </div>
-
-    <form on:submit|preventDefault={handleSubmit}>
+    <form on:submit|preventDefault={search}>
       <label class="keyword-field">
         <span>네이버 블로그 검색어</span>
         <div class="input-wrap">
@@ -193,14 +172,14 @@
           <input
             bind:value={keyword}
             maxlength="80"
-            placeholder={mode === 'overview' ? '예: 부산여행, 제주도 3박4일' : '예: 성수동 브런치 맛집'}
+            placeholder="예: 성수동 브런치, 부산여행"
             aria-label="네이버 블로그 검색어"
           />
           <button type="submit" disabled={loading || !keyword.trim()}>
             {#if loading}
               <span class="spinner"></span> 찾는 중
             {:else}
-              {mode === 'overview' ? '개요 찾기' : '장소 찾기'}
+              장소 찾기
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
             {/if}
           </button>
@@ -223,7 +202,7 @@
       </div>
       <div>
         <span class="step-label">STEP 02</span>
-        <h2>{currentProgressMessages[progressIndex]}</h2>
+        <h2>{progressMessages[progressIndex]}</h2>
         <p>페이지 수에 따라 1~2분 정도 걸릴 수 있어요. 창을 닫지 말아 주세요.</p>
         <div class="progress-track"><span style={`width: ${(progressIndex + 1) * 32}%`}></span></div>
       </div>

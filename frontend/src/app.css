@@ -282,10 +282,6 @@ h2 { margin: 0; color: var(--ink); font-size: 24px; line-height: 1.35; letter-sp
 .privacy-note { margin-top: 10px; padding: 7px 10px; color: var(--accent); display: flex; align-items: center; gap: 6px; border-radius: 999px; background: var(--accent-soft); font-size: 10px; font-weight: 650; white-space: nowrap; }
 .privacy-note svg { width: 15px; }
 
-.mode-tabs { margin-top: 22px; padding: 4px; display: flex; gap: 4px; width: max-content; border: 1px solid var(--line); border-radius: 12px; background: var(--paper-soft); }
-.mode-tabs button { padding: 8px 16px; color: var(--muted); border: 0; border-radius: 9px; background: transparent; font-size: 12px; font-weight: 700; transition: color .2s ease, background .2s ease, box-shadow .2s ease; }
-.mode-tabs button.active { color: var(--ink); background: var(--paper); box-shadow: 0 2px 8px rgba(0, 0, 0, .08); }
-
 form { margin-top: 28px; }
 label > span { display: block; margin-bottom: 9px; color: var(--ink-soft); font-size: 11px; font-weight: 700; }
 .input-wrap { position: relative; display: flex; align-items: center; }
