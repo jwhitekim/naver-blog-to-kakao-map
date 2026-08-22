@@ -57,6 +57,29 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(response.json()["post_count"], 7)
         self.assertEqual(response.json()["query"], "성수동 카페")
 
+    @patch("blog_place_collector.api.overview_collection")
+    def test_overview_returns_regions(self, overview_collection):
+        overview_collection.return_value = {
+            "post_count": 35,
+            "regions": [
+                {
+                    "name": "서면",
+                    "mention_count": 12,
+                    "categories": [{"name": "카페", "mention_count": 5}],
+                }
+            ],
+        }
+
+        response = self.client.post(
+            "/api/collections/overview",
+            json={"keyword": "부산여행", "max_pages": 10},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["post_count"], 35)
+        self.assertEqual(response.json()["query"], "부산여행")
+        self.assertEqual(response.json()["regions"][0]["name"], "서면")
+
     def test_preview_validates_limits(self):
         response = self.client.post(
             "/api/collections/preview",
