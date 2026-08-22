@@ -55,11 +55,15 @@ PROMPT_TEMPLATE = """\
 
 
 def _call_gemini(prompt, response_schema):
+    # temperature=0: 같은 입력이면 같은 결과가 나오게 합니다. 기본 temperature(샘플링
+    # 랜덤성)를 쓰면 70개 글처럼 큰 배치를 넣었을 때 호출마다 추출 결과가 크게 달라지는
+    # 문제가 있었습니다 (예: 같은 업체 언급이 1회로도, 41회로도 잡힘).
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "responseMimeType": "application/json",
             "responseSchema": response_schema,
+            "temperature": 0,
         },
     }
     response = requests.post(
