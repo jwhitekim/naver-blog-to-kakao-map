@@ -4,11 +4,13 @@
   const progressMessages = [
     '블로그 포스팅을 모으고 있어요',
     'AI가 상호명을 구분하고 있어요',
+    '결과가 부족하면 더 찾아보고 있어요',
     '카카오맵에서 정확한 장소를 찾고 있어요'
   ];
 
   const overviewProgressMessages = [
     '블로그 포스팅을 모으고 있어요',
+    '결과가 부족하면 더 찾아보고 있어요',
     'AI가 지역과 카테고리를 정리하고 있어요'
   ];
 
@@ -16,9 +18,6 @@
 
   let mode = 'quick'; // 'quick' | 'overview'
   let keyword = '';
-  let maxPages = 10;
-  let topN = 10;
-  let radius = 5000;
   let result = null;
   let overviewResult = null;
   let loading = false;
@@ -57,12 +56,7 @@
       const response = await fetch('/api/collections/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keyword: keyword.trim(),
-          max_pages: Number(maxPages),
-          top_n: Number(topN),
-          radius: Number(radius)
-        })
+        body: JSON.stringify({ keyword: keyword.trim() })
       });
       result = await parseResponse(response);
     } catch (requestError) {
@@ -88,10 +82,7 @@
       const response = await fetch('/api/collections/overview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keyword: keyword.trim(),
-          max_pages: Number(maxPages)
-        })
+        body: JSON.stringify({ keyword: keyword.trim() })
       });
       overviewResult = await parseResponse(response);
     } catch (requestError) {
@@ -107,10 +98,6 @@
     mode = 'quick';
     overviewResult = null;
     search();
-  }
-
-  function formatDistance(meters) {
-    return meters >= 1000 ? `${meters / 1000}km` : `${meters}m`;
   }
 </script>
 
@@ -225,48 +212,6 @@
           {/each}
         </div>
       </label>
-
-      <div class="options-grid">
-        <label>
-          <span>수집 페이지</span>
-          <div class="select-wrap">
-            <select bind:value={maxPages}>
-              <option value={5}>5페이지 · 빠르게</option>
-              <option value={10}>10페이지 · 권장</option>
-              <option value={20}>20페이지 · 꼼꼼하게</option>
-              <option value={30}>30페이지 · 최대</option>
-            </select>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
-          </div>
-        </label>
-        {#if mode === 'quick'}
-          <label>
-            <span>가져올 장소</span>
-            <div class="select-wrap">
-              <select bind:value={topN}>
-                <option value={5}>상위 5곳</option>
-                <option value={10}>상위 10곳</option>
-                <option value={15}>상위 15곳</option>
-                <option value={20}>상위 20곳</option>
-              </select>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
-            </div>
-          </label>
-          <label>
-            <span>검색 반경</span>
-            <div class="select-wrap">
-              <select bind:value={radius}>
-                <option value={1000}>1km</option>
-                <option value={3000}>3km</option>
-                <option value={5000}>5km · 권장</option>
-                <option value={10000}>10km</option>
-                <option value={20000}>20km</option>
-              </select>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
-            </div>
-          </label>
-        {/if}
-      </div>
     </form>
   </section>
 
@@ -384,7 +329,7 @@
                         {candidate.place.business_hours.is_open ? '영업중' : '영업종료'} · {candidate.place.business_hours.display}
                       </span>
                     {/if}
-                    <span>{formatDistance(radius)} 반경 검색</span>
+                    <span>5km 반경 검색</span>
                   </div>
                 {:else}
                   <p class="address">카카오맵에서 ‘{candidate.name}’의 정확한 장소를 찾지 못했어요.</p>

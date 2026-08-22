@@ -329,23 +329,6 @@ label > span { display: block; margin-bottom: 9px; color: var(--ink-soft); font-
 .search-examples small { margin-right: 3px; color: var(--muted); font-size: 10px; }
 .search-examples button { padding: 5px 9px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; background: var(--paper); font-size: 10px; transition: color .2s ease, border-color .2s ease, background .2s ease; }
 .search-examples button:hover { color: var(--pink); border-color: #e7b2ca; background: var(--pink-soft); }
-.options-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 25px; padding-top: 22px; border-top: 1px dashed var(--line); }
-.select-wrap { position: relative; }
-.select-wrap select {
-  width: 100%;
-  height: 46px;
-  padding: 0 38px 0 14px;
-  appearance: none;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  background: var(--paper);
-  color: var(--ink-soft);
-  outline: none;
-  font-size: 12px;
-  transition: border-color .2s ease, box-shadow .2s ease;
-}
-.select-wrap select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 149, 246, .1); }
-.select-wrap svg { position: absolute; right: 13px; top: 14px; width: 17px; color: var(--muted); pointer-events: none; }
 
 .spinner { width: 14px; height: 14px; border: 2px solid rgba(255, 255, 255, .4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -489,7 +472,6 @@ footer p { margin: 0; color: var(--muted); font-size: 10px; }
   .input-wrap input { height: 58px; padding-right: 16px; }
   .input-wrap button { position: static; width: 100%; height: 49px; margin-top: 8px; }
   .search-examples small { flex-basis: 100%; }
-  .options-grid { grid-template-columns: 1fr; gap: 13px; }
   .loading-card { padding: 24px 19px; align-items: flex-start; gap: 14px; border-radius: 18px; }
   .radar { width: 46px; height: 46px; border-radius: 15px; }
   .results { padding: 28px 19px; border-radius: 20px; }
