@@ -18,17 +18,26 @@ REGIONS_PROMPT_TEMPLATE = """\
 검색어: "{keyword}"
 """
 
-RESPONSE_SCHEMA = {
-    "type": "ARRAY",
-    "items": {
-        "type": "OBJECT",
-        "properties": {
-            "index": {"type": "INTEGER"},
-            "name": {"type": "STRING"},
+def _business_names_schema(post_count):
+    # 응답 배열 길이를 목록 개수로 고정합니다. 예전엔 길이 제한이 없어서, 모델이
+    # "같은 가게는 한 번만 출력"이라고 오독하면 항목을 통째로 스킵해도 스키마상
+    # 걸리지 않았습니다(실측: 반복 언급 recall이 5/40까지 떨어짐). minItems/maxItems로
+    # 개수를 강제하면 스킵이 곧 스키마 위반이 되므로, 프롬프트 워딩에만 기대지 않고
+    # 개수 누락을 구조적으로 막습니다.
+    return {
+        "type": "ARRAY",
+        "minItems": post_count,
+        "maxItems": post_count,
+        "items": {
+            "type": "OBJECT",
+            "properties": {
+                "index": {"type": "INTEGER"},
+                "name": {"type": "STRING"},
+            },
+            "required": ["index", "name"],
         },
-        "required": ["index", "name"],
-    },
-}
+    }
+
 
 PROMPT_TEMPLATE = """\
 사용자가 검색한 키워드는 "{keyword}"입니다.
@@ -48,9 +57,11 @@ PROMPT_TEMPLATE = """\
 - 같은 가게가 여러 항목에서 언급되면, 항목마다 각각 결과에 포함하세요(항목을 건너뛰지 마세요).
   다만 표기가 항목마다 다르더라도(예: "메가커피" vs "메가MGC커피") name 값은 동일한 상호명 하나로
   통일해서 쓰세요. 즉 "몇 번 등장하는지"는 그대로 유지하고, "어떻게 표기하는지"만 통일하는 것입니다.
-- 목록에 있는 항목 수만큼 훑으면서, 상호명이 있는 항목은 하나도 빠짐없이 결과에 포함하세요.
 - 제목에 없어도 본문에 구체적인 상호명이 있으면 추출하세요.
 - 지역명, 역 이름, 업종처럼 상호명이 전혀 아닌 일반 단어만 있는 경우에만 제외하세요.
+- 목록에는 항목이 총 {post_count}개 있습니다. 결과 배열도 정확히 {post_count}개를 반환하고,
+  각 항목의 index(1~{post_count})가 정확히 한 번씩 모두 나타나야 합니다. 상호명이 없는
+  항목은 건너뛰지 말고 name을 빈 문자열("")로 채워서 포함하세요.
 
 목록:
 {items}
@@ -140,18 +151,35 @@ def _numbered_posts(posts):
 
 
 def _build_prompt(posts, keyword):
-    return PROMPT_TEMPLATE.format(keyword=keyword, items=_numbered_posts(posts))
+    return PROMPT_TEMPLATE.format(keyword=keyword, items=_numbered_posts(posts), post_count=len(posts))
+
+
+# minItems/maxItems로 응답 길이를 고정하면 Gemini API가 요청 자체를 400으로 거부하는
+# 지점이 있습니다(실측: 135개는 성공, 140개부터 실패). 정확도 문제와는 무관하고 순전히
+# API 쪽 제약이라, 여유를 두고 이 크기 이하로만 나눠 호출합니다.
+MAX_ITEMS_PER_CALL = 100
 
 
 def extract_business_names(posts, keyword):
-    entries = _call_gemini(_build_prompt(posts, keyword), RESPONSE_SCHEMA)
-
     names = []
-    for entry in entries:
-        index = entry["index"] - 1
-        name = entry["name"].strip()
-        if 0 <= index < len(posts) and name:
-            names.append({"name": name, "post": posts[index]})
+    for start in range(0, len(posts), MAX_ITEMS_PER_CALL):
+        chunk = posts[start : start + MAX_ITEMS_PER_CALL]
+        schema = _business_names_schema(len(chunk))
+        entries = _call_gemini(_build_prompt(chunk, keyword), schema)
+        if len(entries) != len(chunk):
+            # minItems/maxItems로 강제했음에도 길이가 다르면 API가 스키마를 못 지킨
+            # 드문 경우입니다 — 있는 만큼은 그대로 쓰되, 놓친 항목이 있을 수 있다는
+            # 신호로 남겨둡니다.
+            print(
+                f"[gemini] extract_business_names: 응답 {len(entries)}개, "
+                f"글 {len(chunk)}개 — 길이가 다릅니다."
+            )
+
+        for entry in entries:
+            index = entry["index"] - 1
+            name = entry["name"].strip()
+            if 0 <= index < len(chunk) and name:
+                names.append({"name": name, "post": chunk[index]})
     return names
 
 
