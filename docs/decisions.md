@@ -19,6 +19,7 @@
 11. ["부산여행"이 다시 결과 목록으로 나온 문제](#11-부산여행이-다시-결과-목록으로-나온-문제--개수만으로는-부족했다)
 12. [진행 메시지가 거짓말을 하고 있었다 + 카카오 검증 최적화](#12-진행-메시지가-거짓말을-하고-있었다--실제-병목카카오-검증-최적화)
 13. [블로그 수집을 비공식 스크래핑에서 공식 API로 전환](#13-블로그-수집을-비공식-스크래핑에서-공식-api로-전환)
+14. [설정 디렉토리 이름 정리와 죽은 설정 필드 제거](#14-설정-디렉토리-이름-정리와-죽은-설정-필드-제거)
 
 ---
 
@@ -550,3 +551,46 @@ API(`openapi.naver.com/v1/search/blog.json`)로 바꾸기로 했다.
   유지, 후보 개수·소요 시간(34~47초)도 기존과 비슷한 수준 — 이번 정리는 이름과
   tier 크기만 바뀐 것이고 판단 로직(확신 후보 개수, 흩어짐 비율 등)은 그대로라
   동작이 크게 달라지지 않았다.
+
+## 14. 설정 디렉토리 이름 정리와 죽은 설정 필드 제거
+
+`backend/config/`(YAML 설정 파일 디렉토리)와
+`backend/blog_place_collector/config.py`(설정 로딩 모듈)의 이름이 겹쳐 헷갈린다는
+지적을 받아 정리했다.
+
+- **디렉토리 이름 변경**: `backend/config/` → `backend/settings/`. 내용물이
+  "사용자가 조정하는 설정값"이라 이름을 그에 맞췄고, `config.py`와의 충돌을
+  없앴다. 함께 바꾼 곳: `config.py`의 `SETTINGS_PATH`/`EXAMPLE_SETTINGS_PATH`,
+  `docker-compose.yml`의 volume 마운트 경로, `README.md`/`README_KO.md`의 복사
+  명령, `setup-nginx-https.sh`의 안내 문구. `.gitignore`는 경로 prefix 없는
+  bare `settings.yaml`이라 그대로 `backend/settings/settings.yaml`을 덮어서 수정
+  불필요(`git check-ignore`로 확인). Dockerfile은 `COPY . .`라 경로 영향 없음.
+
+- **죽은 필드 제거**:
+  - `search.top_n`(`TOP_N`) — 대입만 되고 참조가 전혀 없어 완전 삭제.
+  - `search.keyword`(`KEYWORD`/`AREA_KEYWORD`) — `naver.py`/`kakao.py`의 함수
+    기본값으로만 쓰였는데 `service.py`가 항상 keyword/area_keyword를 명시적으로
+    넘겨서 기본값이 실제로 쓰인 적이 없다. 필드를 삭제하고 함수 인자를 정리했다:
+    `naver_blog_search(keyword, ...)`는 keyword 필수, `get_area_anchor(area_keyword)`는
+    필수, `search_place`/`_search_documents`의 `area_keyword`는 기본값을 `None`으로
+    바꿨다(nationwide=True 경로는 area_keyword를 안 쓰므로 안전 — 실측 확인).
+  - `kakao.local_search_url` — 카카오 API 고정 엔드포인트라 사용자가 바꿀 이유가
+    없다. YAML에서 빼고 `NAVER_*_SEARCH_URL`처럼 `config.py`에 상수로 하드코딩.
+    YAML의 `kakao:` 섹션 통째로 삭제.
+  - 유지한 필드: `search.target_count`, `search.kakao_search_radius`.
+
+- **배포 주의(과거 KeyError 사고 재발 방지)**: `settings.yaml`은 gitignore라
+  배포 서버 파일은 git push로 갱신되지 않는다. 이번에 (1) YAML 키 2개(`top_n`,
+  `keyword`)와 `kakao:` 섹션을 없앴고 (2) 파일 경로를 `backend/config/` →
+  `backend/settings/`로 옮겼다. `settings.example.yaml`(git 추적)과 로컬
+  `settings.yaml`은 새 스키마로 갱신했지만, **배포 서버에서는 사람이 수동으로
+  `backend/config/`를 `backend/settings/`로 옮기고 YAML을 새 스키마(search만,
+  target_count/kakao_search_radius 2키)로 맞춰야 한다.** 옛 파일에 `top_n`/
+  `keyword`/`kakao`가 남아 있어도 `config.py`가 더는 그 키를 읽지 않아 KeyError는
+  안 나지만(하위호환 OK), 파일 경로가 안 맞으면 config.py가 example로 fallback
+  하므로 경로 이전이 필요하다.
+
+- 검증: `pytest backend/tests` 6 passed. `main.py` 부팅 후 `/api/health`가
+  `settings: true` 반환(새 경로 인식). 실 API로 `naver_blog_search`(성수동 카페),
+  `get_area_anchor`(성수동), `search_place` local/nationwide 모두 정상 동작 확인.
+  `docker build`도 통과(이미지 안에서 config 로드까지 확인).

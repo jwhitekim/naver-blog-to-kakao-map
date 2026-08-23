@@ -4,7 +4,6 @@ import re
 import requests
 
 from blog_place_collector.config import (
-    KEYWORD,
     NAVER_BLOG_SEARCH_URL,
     NAVER_LOCAL_SEARCH_URL,
     TARGET_COUNT,
@@ -19,7 +18,7 @@ def _strip_tags(text):
     return html.unescape(re.sub(r"<[^>]+>", "", text))
 
 
-def naver_blog_search(keyword=KEYWORD, target_count=TARGET_COUNT):
+def naver_blog_search(keyword, target_count=TARGET_COUNT):
     """네이버 블로그 검색 공식 API로 글을 target_count개까지 모읍니다."""
     posts = []
     start = 1

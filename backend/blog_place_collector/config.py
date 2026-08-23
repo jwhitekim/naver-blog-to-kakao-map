@@ -5,8 +5,8 @@ import yaml
 from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SETTINGS_PATH = PROJECT_ROOT / "config" / "settings.yaml"
-EXAMPLE_SETTINGS_PATH = PROJECT_ROOT / "config" / "settings.example.yaml"
+SETTINGS_PATH = PROJECT_ROOT / "settings" / "settings.yaml"
+EXAMPLE_SETTINGS_PATH = PROJECT_ROOT / "settings" / "settings.example.yaml"
 
 load_dotenv(PROJECT_ROOT / ".env")
 
@@ -19,9 +19,6 @@ with _resolved_settings_path.open(encoding="utf-8") as f:
 _search_settings = _settings["search"]
 
 TARGET_COUNT = _search_settings["target_count"]
-TOP_N = _search_settings["top_n"]
-KEYWORD = _search_settings["keyword"]
-AREA_KEYWORD = KEYWORD.split()[0] if KEYWORD.split() else ""
 KAKAO_SEARCH_RADIUS = _search_settings["kakao_search_radius"]
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -32,7 +29,7 @@ GEMINI_API_URL = (
 )
 
 KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY")
-KAKAO_LOCAL_SEARCH_URL = _settings["kakao"]["local_search_url"]
+KAKAO_LOCAL_SEARCH_URL = "https://dapi.kakao.com/v2/local/search/keyword.json"
 kakao_auth_headers = {"Authorization": f"KakaoAK {KAKAO_REST_API_KEY}"}
 
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")

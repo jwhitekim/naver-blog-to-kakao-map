@@ -2,9 +2,9 @@ services:
   app:
     build: .
     ports:
-      - "127.0.0.1:${PORT:-8001}:${PORT:-8001}"
+      - "0.0.0.0:${PORT:-8001}:${PORT:-8001}"
     env_file:
       - backend/.env
     volumes:
-      - ./backend/config/settings.yaml:/app/backend/config/settings.yaml:ro
+      - ./backend/settings/settings.yaml:/app/backend/settings/settings.yaml:ro
     restart: unless-stopped

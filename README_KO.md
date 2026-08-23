@@ -48,7 +48,7 @@ secret) 키.
 
 ```bash
 cp backend/.env.example backend/.env          # API 키 입력
-cp backend/config/settings.example.yaml backend/config/settings.yaml
+cp backend/settings/settings.example.yaml backend/settings/settings.yaml
 
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt

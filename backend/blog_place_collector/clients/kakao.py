@@ -4,7 +4,6 @@ from difflib import SequenceMatcher
 import requests
 
 from blog_place_collector.config import (
-    AREA_KEYWORD,
     KAKAO_LOCAL_SEARCH_URL,
     KAKAO_SEARCH_RADIUS,
     kakao_auth_headers,
@@ -22,7 +21,7 @@ _kakao_map_headers = {
 _area_anchors = {}
 
 
-def get_area_anchor(area_keyword=AREA_KEYWORD):
+def get_area_anchor(area_keyword):
     """지역 대표 좌표를 구해 검색 결과의 거리 기준점으로 사용합니다."""
     if area_keyword not in _area_anchors:
         response = requests.get(
@@ -42,7 +41,7 @@ def get_area_anchor(area_keyword=AREA_KEYWORD):
 
 def _search_documents(
     keyword,
-    area_keyword=AREA_KEYWORD,
+    area_keyword=None,
     radius=KAKAO_SEARCH_RADIUS,
     max_pages=3,
     nationwide=False,
@@ -139,7 +138,7 @@ def _pick_best_match(documents, keyword, require_match=False, regions=None):
 
 def search_place(
     keyword,
-    area_keyword=AREA_KEYWORD,
+    area_keyword=None,
     radius=KAKAO_SEARCH_RADIUS,
     require_match=False,
     nationwide=False,
