@@ -531,3 +531,22 @@ API(`openapi.naver.com/v1/search/blog.json`)로 바꾸기로 했다.
   - "부산여행": mode=overview, 지역 8곳(해운대/광안리/남포동/기장/서면/부산역/
     영도/전포) — 12장에서 설계한 흩어짐 판단도 새 데이터 소스에서 그대로 잘
     작동함을 확인.
+
+### 후속 정리: "7개 단위"는 비공식 API의 흔적일 뿐이었다
+
+전환 직후엔 호환성을 위해 `naver_blog_search(keyword, max_pages)`가 내부적으로
+`max_pages * 7`을 목표 글 수로 계산하도록 남겨뒀다(비공식 엔드포인트의
+`countPerPage=7` 흔적). 공식 API 파라미터 문서(`display` 최대 100, `start` 최대
+1000)를 다시 보고, 이 "7 단위" 제약이 더 이상 필요 없다고 판단해 정리했다.
+
+- `naver_blog_search`의 매개변수를 `max_pages`(페이지 수) → `target_count`(글 수
+  그대로)로 바꾸고, `×7` 계산을 제거했다.
+- `service.py`의 `PAGE_TIERS = [5, 15, 30]`(→ 35/105/210개)를
+  `COLLECTION_TIERS = [100, 200, 300]`으로 바꿨다 — 공식 API의 `display` 상한
+  (100)에 맞춰 각 tier가 정확히 1/2/3번 호출로 끝난다.
+  `config.py`/`settings.yaml`의 `search.max_pages`도 `search.target_count`로
+  이름을 맞췄다.
+- 재검증(강남 맛집/부산여행/성수동 브런치): mode 판단(results/overview) 그대로
+  유지, 후보 개수·소요 시간(34~47초)도 기존과 비슷한 수준 — 이번 정리는 이름과
+  tier 크기만 바뀐 것이고 판단 로직(확신 후보 개수, 흩어짐 비율 등)은 그대로라
+  동작이 크게 달라지지 않았다.
