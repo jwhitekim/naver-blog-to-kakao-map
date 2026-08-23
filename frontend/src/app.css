@@ -7,19 +7,17 @@
   --muted-light: #A6AA97;
   --line: #D8CFB4;
   --line-strong: #C2B896;
-  --stamp: #A23B2E;
-  --stamp-soft: #F3E2DB;
+  --brand: #A23B2E;
+  --brand-soft: #F3E2DB;
   --kakao: #FFCD00;
   --kakao-ink: #3C2E00;
   --naver: #03C75A;
   --naver-ink: #043618;
   --closed: #A23B2E;
 
-  --font-display: "Gowun Batang", "Noto Serif KR", serif;
-  --font-body: Pretendard, "Pretendard Variable", -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  --font: Pretendard, "Pretendard Variable", -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
 
-  font-family: var(--font-body);
+  font-family: var(--font);
   color: var(--ink);
   background: var(--paper);
   font-synthesis: none;
@@ -35,8 +33,8 @@
     --muted-light: #6B6754;
     --line: #3A3324;
     --line-strong: #4C432E;
-    --stamp: #E0715C;
-    --stamp-soft: #2E1F1A;
+    --brand: #E0715C;
+    --brand-soft: #2E1F1A;
     --kakao-ink: #FFCD00;
     --naver-ink: #4EDB8B;
   }
@@ -58,7 +56,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round
 a { color: inherit; }
 
 button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible {
-  outline: 2px solid var(--stamp);
+  outline: 2px solid var(--brand);
   outline-offset: 3px;
 }
 
@@ -100,13 +98,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 .brand-mark { display: none; }
 .brand-copy strong {
-  font-family: var(--font-display);
+  font-weight: 800;
   font-size: 19px;
   letter-spacing: -.01em;
 }
+.brand-copy strong::before {
+  content: "●";
+  color: var(--brand);
+  font-size: 10px;
+  margin-right: 7px;
+  vertical-align: 2px;
+}
 .brand-copy small {
   color: var(--muted);
-  font-family: var(--font-mono);
+  font-weight: 600;
   font-size: 9.5px;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -120,16 +125,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 .hero-kicker {
   color: var(--muted);
-  font-family: var(--font-mono);
+  font-weight: 600;
   font-size: 12.5px;
   letter-spacing: .04em;
   margin: 0 0 18px;
 }
 .hero-sentence {
-  font-family: var(--font-display);
+  font-weight: 700;
   font-size: clamp(28px, 4.6vw, 46px);
   line-height: 1.32;
-  letter-spacing: -.01em;
+  letter-spacing: -.015em;
   margin: 0;
   color: var(--ink);
 }
@@ -138,18 +143,18 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 .keyword-input {
   font: inherit;
-  font-family: var(--font-display);
+  font-weight: 700;
   background: transparent;
   border: none;
   border-bottom: 2.5px solid var(--ink);
-  color: var(--stamp);
+  color: var(--brand);
   width: clamp(180px, 40vw, 420px);
   max-width: 100%;
   padding: 0 2px 3px;
   vertical-align: baseline;
 }
 .keyword-input::placeholder { color: var(--muted-light); }
-.keyword-input:focus { outline: none; border-bottom-color: var(--stamp); }
+.keyword-input:focus { outline: none; border-bottom-color: var(--brand); }
 
 .submit-arrow {
   display: inline-flex;
@@ -158,13 +163,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  border: 1.5px solid var(--ink);
-  color: var(--ink);
+  border: 1.5px solid var(--brand);
+  color: var(--brand);
   vertical-align: -9px;
   margin-left: 8px;
-  transition: background .15s ease, color .15s ease, transform .15s ease;
+  transition: background .15s ease, color .15s ease;
 }
-.submit-arrow:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+.submit-arrow:hover:not(:disabled) { background: var(--brand); color: var(--paper); }
 .submit-arrow:disabled { opacity: .35; cursor: default; }
 .submit-arrow svg { width: 16px; height: 16px; }
 .submit-arrow .spinner {
@@ -192,7 +197,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   text-underline-offset: 3px;
   padding: 2px 0;
 }
-.hero-examples button:hover { color: var(--stamp); text-decoration-color: var(--stamp); }
+.hero-examples button:hover { color: var(--brand); text-decoration-color: var(--brand); }
 
 .hero-stamp-row {
   margin-top: 56px;
@@ -205,23 +210,25 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   width: 108px;
   height: 108px;
   border-radius: 50%;
-  border: 2.5px solid var(--stamp);
-  outline: 1px solid var(--stamp);
+  border: 2.5px solid var(--brand);
+  outline: 1px solid var(--brand);
   outline-offset: 4px;
-  color: var(--stamp);
+  color: var(--brand);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   transform: rotate(-8deg);
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 .hero-stamp b {
+  font-weight: 800;
   font-size: 30px;
   line-height: 1;
   letter-spacing: -.02em;
 }
 .hero-stamp span {
+  font-weight: 600;
   font-size: 9px;
   letter-spacing: .12em;
   margin-top: 4px;
@@ -232,7 +239,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   max-width: 30em;
   line-height: 1.65;
 }
-.hero-stamp-caption strong { color: var(--stamp); font-weight: 600; }
+.hero-stamp-caption strong { color: var(--brand); font-weight: 700; }
 
 /* ---------- 로딩: 박스 없는 상태 줄 ---------- */
 
@@ -243,7 +250,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   align-items: baseline;
   row-gap: 6px;
   column-gap: 14px;
-  font-family: var(--font-mono);
+  font-weight: 600;
   font-size: 14px;
   color: var(--ink-soft);
 }
@@ -251,7 +258,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   display: inline-block;
   width: 8px;
   height: 15px;
-  background: var(--stamp);
+  background: var(--brand);
   animation: blink 1s step-end infinite;
   flex: none;
 }
@@ -259,7 +266,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .status-line .status-note {
   flex-basis: 100%;
   color: var(--muted);
-  font-family: var(--font-body);
+  font-weight: 400;
   font-size: 12.5px;
 }
 
@@ -268,12 +275,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .alert {
   margin: 24px 0;
   padding: 14px 0;
-  border-top: 1px solid var(--stamp);
-  border-bottom: 1px solid var(--stamp);
+  border-top: 1px solid var(--brand);
+  border-bottom: 1px solid var(--brand);
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  color: var(--stamp);
+  color: var(--brand);
 }
 .alert svg { flex: none; width: 18px; height: 18px; margin-top: 2px; }
 .alert div { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
@@ -286,14 +293,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   padding: 40px 0 22px;
 }
 .section-eyebrow {
-  font-family: var(--font-mono);
+  font-weight: 700;
   font-size: 11px;
   letter-spacing: .1em;
-  color: var(--muted);
+  color: var(--brand);
   text-transform: uppercase;
 }
 .section-heading h2 {
-  font-family: var(--font-display);
+  font-weight: 700;
   font-size: 24px;
   margin: 6px 0 8px;
   letter-spacing: -.01em;
@@ -318,7 +325,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .ledger-row:last-child { border-bottom: 1px solid var(--line); }
 
 .row-rank {
-  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   font-size: 13px;
   color: var(--muted-light);
   padding-top: 3px;
@@ -332,17 +340,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   gap: 8px 10px;
 }
 .row-title-line h3 {
-  font-family: var(--font-display);
+  font-weight: 700;
   font-size: 19px;
   margin: 0;
   letter-spacing: -.005em;
 }
 .unmatched-badge {
-  font-family: var(--font-mono);
+  font-weight: 600;
   font-size: 10px;
   letter-spacing: .06em;
-  color: var(--stamp);
-  border: 1px solid var(--stamp);
+  color: var(--brand);
+  border: 1px solid var(--brand);
   padding: 1px 6px;
 }
 .row-address {
@@ -382,7 +390,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   list-style: none;
 }
 .row-footer summary::-webkit-details-marker { display: none; }
-.row-footer summary:hover { color: var(--stamp); text-decoration-color: var(--stamp); }
+.row-footer summary:hover { color: var(--brand); text-decoration-color: var(--brand); }
 
 .sources {
   margin-top: 10px;
@@ -400,10 +408,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   padding: 4px 0;
   border-bottom: 1px dotted var(--line-strong);
 }
-.sources a:hover { color: var(--stamp); }
+.sources a:hover { color: var(--brand); }
 .source-badge {
   flex: none;
-  font-family: var(--font-mono);
+  font-weight: 700;
   font-size: 9px;
   width: 15px; height: 15px;
   border-radius: 50%;
@@ -423,7 +431,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-mono);
+  font-weight: 600;
   font-size: 11.5px;
   letter-spacing: .02em;
   text-decoration: none;
@@ -437,27 +445,27 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .map-link.naver .dot { background: var(--naver); }
 .map-link svg { width: 11px; height: 11px; }
 
-/* 언급 도장 배지 */
+/* 언급 도장 배지 — 브랜드 컬러가 가장 또렷하게 드러나는 자리 */
 .row-stamp {
   flex: none;
   justify-self: end;
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  border: 2px solid var(--stamp);
-  outline: 1px solid var(--stamp);
+  border: 2px solid var(--brand);
+  outline: 1px solid var(--brand);
   outline-offset: 2.5px;
-  color: var(--stamp);
+  color: var(--brand);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   transform: rotate(-6deg);
   margin-top: 2px;
 }
-.row-stamp b { font-size: 17px; line-height: 1; }
-.row-stamp span { font-size: 6.5px; letter-spacing: .08em; margin-top: 2px; }
+.row-stamp b { font-weight: 800; font-size: 17px; line-height: 1; }
+.row-stamp span { font-weight: 600; font-size: 6.5px; letter-spacing: .08em; margin-top: 2px; }
 .ledger-row.unmatched .row-stamp { border-color: var(--muted-light); outline-color: var(--muted-light); color: var(--muted-light); }
 
 /* ---------- 빈 상태 ---------- */
@@ -469,12 +477,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 .empty-state span {
   display: block;
-  font-family: var(--font-display);
+  font-weight: 800;
   font-size: 30px;
   color: var(--line-strong);
   margin-bottom: 10px;
 }
-.empty-state h3 { font-family: var(--font-display); color: var(--ink); font-size: 17px; margin: 0 0 6px; }
+.empty-state h3 { font-weight: 700; color: var(--ink); font-size: 17px; margin: 0 0 6px; }
 .empty-state p { font-size: 13.5px; margin: 0; }
 
 /* ---------- 지역 개요 ---------- */
@@ -495,12 +503,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   gap: 12px;
 }
 .region-title-line h3 {
-  font-family: var(--font-display);
+  font-weight: 700;
   font-size: 19px;
   margin: 0;
 }
 .region-mentions {
-  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   font-size: 11.5px;
   color: var(--muted);
   white-space: nowrap;
@@ -520,9 +529,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   align-items: baseline;
   gap: 6px;
 }
-.category-tab:hover { color: var(--stamp); border-bottom-color: var(--stamp); }
+.category-tab:hover { color: var(--brand); border-bottom-color: var(--brand); }
 .category-tab .tab-count {
-  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   font-size: 10.5px;
   color: var(--muted);
 }
@@ -554,13 +564,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   width: 22px; height: 22px;
   border-radius: 50%;
   background: var(--paper);
-  border: 1.5px solid var(--ink);
-  font-family: var(--font-mono);
+  border: 1.5px solid var(--brand);
+  color: var(--brand);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   font-size: 10px;
   display: flex; align-items: center; justify-content: center;
 }
 .process-step h3 {
-  font-family: var(--font-display);
+  font-weight: 700;
   font-size: 16px;
   margin: 0 0 6px;
 }
