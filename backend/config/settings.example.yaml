@@ -4,16 +4,5 @@ search:
   top_n: 10
   kakao_search_radius: 5000
 
-naver:
-  api_url: "https://example.com/replace-with-real-endpoint"
-  headers:
-    accept: "application/json, text/plain, */*"
-    accept-encoding: "gzip, deflate, br, zstd"
-    accept-language: "ko,en-US;q=0.9,en;q=0.8"
-    cache-control: "no-cache"
-    pragma: "no-cache"
-    referer: "https://example.com/replace-with-real-referer"
-    user-agent: "Mozilla/5.0 (replace-with-real-user-agent)"
-
 kakao:
   local_search_url: "https://dapi.kakao.com/v2/local/search/keyword.json"

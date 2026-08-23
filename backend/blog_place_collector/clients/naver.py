@@ -1,5 +1,4 @@
 import html
-import json
 import re
 
 import requests
@@ -7,17 +6,13 @@ import requests
 from blog_place_collector.config import (
     KEYWORD,
     MAX_PAGES,
-    NAVER_BLOG_API_URL,
+    NAVER_BLOG_SEARCH_URL,
     NAVER_LOCAL_SEARCH_URL,
-    headers,
     naver_open_api_headers,
-    params,
 )
 
-
-def _strip_highlight(text):
-    text = text.replace('<strong class="search_keyword">', "").replace("</strong>", "")
-    return html.unescape(text)
+# 공식 API는 한 번 호출에 최대 100개까지 준다(display 상한, 실측 확인).
+BLOG_SEARCH_PAGE_SIZE = 100
 
 
 def _strip_tags(text):
@@ -25,41 +20,32 @@ def _strip_tags(text):
 
 
 def naver_blog_search(keyword=KEYWORD, max_pages=MAX_PAGES):
+    """네이버 블로그 검색 공식 API로 글을 모읍니다. max_pages는 기존 비공식
+    엔드포인트 시절의 "페이지 수"(7개/페이지) 단위를 그대로 유지합니다 — 이 세션
+    내내 여러 임계값을 이 글 수 기준(35/105/210개)으로 실측 보정했기 때문입니다."""
+    target_count = max_pages * 7
     posts = []
-    request_params = {
-        **params,
-        "keyword": keyword,
-    }
+    start = 1
 
-    for page in range(1, max_pages + 1):
-        request_params["currentPage"] = str(page)
-
+    while len(posts) < target_count:
+        display = min(BLOG_SEARCH_PAGE_SIZE, target_count - len(posts))
         response = requests.get(
-            NAVER_BLOG_API_URL,
-            headers=headers,
-            params=request_params,
+            NAVER_BLOG_SEARCH_URL,
+            headers=naver_open_api_headers,
+            params={"query": keyword, "display": display, "start": start, "sort": "sim"},
             timeout=15,
         )
         response.raise_for_status()
+        items = response.json().get("items", [])
 
-        # 네이버 응답의 JSON 하이재킹 방지용 접두사를 제거합니다.
-        json_text = response.text
-        if not json_text.lstrip().startswith("{"):
-            parts = json_text.split("\n", 1)
-            if len(parts) != 2:
-                raise ValueError("네이버 블로그 응답 형식을 확인할 수 없습니다.")
-            json_text = parts[1]
-        data = json.loads(json_text)
+        for item in items:
+            title = _strip_tags(item.get("title", ""))
+            contents = _strip_tags(item.get("description", ""))
+            posts.append({"title": title, "contents": contents, "url": item.get("link", "")})
 
-        search_list = data.get("result", {}).get("searchList", [])
-        for post in search_list:
-            title = _strip_highlight(post.get("title", ""))
-            contents = _strip_highlight(post.get("contents", ""))
-            blog_link = post.get("postUrl", "")
-            posts.append({"title": title, "contents": contents, "url": blog_link})
-
-        if not search_list:
+        if len(items) < display:
             break
+        start += display
 
     return posts
 

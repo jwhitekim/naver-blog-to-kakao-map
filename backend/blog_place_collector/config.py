@@ -24,18 +24,6 @@ KEYWORD = _search_settings["keyword"]
 AREA_KEYWORD = KEYWORD.split()[0] if KEYWORD.split() else ""
 KAKAO_SEARCH_RADIUS = _search_settings["kakao_search_radius"]
 
-NAVER_BLOG_API_URL = _settings["naver"]["api_url"]
-
-params = {
-    "countPerPage": "7",
-    "currentPage": "1",
-    "endDate": "",
-    "keyword": KEYWORD,
-    "orderBy": "sim",
-    "startDate": "",
-    "type": "post",
-}
-
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = "gemini-3.1-flash-lite"
 GEMINI_API_URL = (
@@ -47,11 +35,10 @@ KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY")
 KAKAO_LOCAL_SEARCH_URL = _settings["kakao"]["local_search_url"]
 kakao_auth_headers = {"Authorization": f"KakaoAK {KAKAO_REST_API_KEY}"}
 
-headers = _settings["naver"]["headers"]
-
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
 NAVER_LOCAL_SEARCH_URL = "https://openapi.naver.com/v1/search/local.json"
+NAVER_BLOG_SEARCH_URL = "https://openapi.naver.com/v1/search/blog.json"
 naver_open_api_headers = {
     "X-Naver-Client-Id": NAVER_CLIENT_ID or "",
     "X-Naver-Client-Secret": NAVER_CLIENT_SECRET or "",
