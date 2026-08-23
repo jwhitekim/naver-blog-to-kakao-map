@@ -1,5 +1,7 @@
 # Placepick
 
+**언어:** [English](README.md) | 한국어
+
 **데모:** <https://plick.2joon.com/> — 개인 배포본입니다. 운영자 개인 API
 키/쿼터로 돌아가서 트래픽이 몰리면 느려지거나 다운될 수 있습니다.
 

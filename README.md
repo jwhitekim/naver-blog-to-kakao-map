@@ -1,5 +1,7 @@
 # Placepick
 
+**Languages:** English | [한국어](README_KO.md)
+
 **Live demo:** <https://plick.2joon.com/> — a personal deployment; it may go
 down or slow down under heavy traffic since it runs on the maintainer's own
 API keys/quota.
