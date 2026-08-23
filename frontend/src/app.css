@@ -138,6 +138,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .hero-sentence form {
   display: inline;
 }
+.hero-sentence-tail {
+  white-space: nowrap;
+}
 .keyword-input {
   font: inherit;
   font-weight: 700;

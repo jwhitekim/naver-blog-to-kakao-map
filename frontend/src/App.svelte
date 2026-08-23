@@ -120,7 +120,7 @@
           {/if}
         </button>
       </form>
-      어디가 진짜 좋을까요?
+      <span class="hero-sentence-tail">어디가 진짜 좋을까요?</span>
     </h1>
 
     <div class="hero-examples">
