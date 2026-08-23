@@ -17,7 +17,7 @@ description: Placepick 백엔드(backend/blog_place_collector) 작업 시 반드
 1. **Gemini 호출은 항상 `temperature=0`.** 재현성 문제(같은 검색이 매번 다른 결과)의 첫 번째 의심 대상.
 2. **`minItems`/`maxItems` 스키마 제약은 140개 근처에서 API가 400을 반환한다(실측).** 큰 배치는 청크로 나눈다.
 3. **외부 API는 이름/키 기준으로 중복 제거 후 병렬 호출.** 카카오 검증에서 9배 속도 개선 사례(`ThreadPoolExecutor`, `service.py`의 `_verified_candidates` 참고).
-4. **`backend/config/settings.yaml`은 gitignore돼 있다.** 배포 서버 파일은 git push로 안 바뀐다 — 설정 키 이름을 바꾸면 배포 서버가 죽을 수 있다. 키를 바꿀 땐 하위호환을 넣거나, 서버 파일을 수동으로 고쳐야 한다고 명확히 알린다.
+4. **`backend/settings/settings.yaml`은 gitignore돼 있다.** 배포 서버 파일은 git push로 안 바뀐다 — 설정 키 이름을 바꾸면 배포 서버가 죽을 수 있다. 키를 바꿀 땐 하위호환을 넣거나, 서버 파일을 수동으로 고쳐야 한다고 명확히 알린다.
 
 ## 작업 방식
 

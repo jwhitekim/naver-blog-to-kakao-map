@@ -23,7 +23,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 
 **응답 스키마 제약(`minItems`/`maxItems`)은 강력하지만 상한이 있다.** 실측 확인: 140개 항목부터 Gemini API가 400을 반환한다. 이 크기를 넘는 배치는 청크로 나눠 호출한다(`MAX_ITEMS_PER_CALL` 패턴 참고, `gemini.py`).
 
-**`backend/config/settings.yaml`은 `.gitignore`돼 있다.** 배포 서버의 파일은 git push로 갱신되지 않는다. `config.py`가 읽는 설정 키 이름을 바꾸면 배포 서버가 옛날 키로 남아있는 파일 때문에 `KeyError`로 죽을 수 있다 — 실제로 한 번 발생했다. 설정 키 이름을 바꿀 때는:
+**`backend/settings/settings.yaml`은 `.gitignore`돼 있다.** 배포 서버의 파일은 git push로 갱신되지 않는다. `config.py`가 읽는 설정 키 이름을 바꾸면 배포 서버가 옛날 키로 남아있는 파일 때문에 `KeyError`로 죽을 수 있다 — 실제로 한 번 발생했다. 설정 키 이름을 바꿀 때는:
 1. `settings.example.yaml`(git 추적됨)도 같이 바꾼다.
 2. 하위호환이 필요한지, 아니면 배포 서버 파일을 수동으로 갱신해야 하는지 사람에게 명확히 알린다 — 조용히 넘어가지 않는다.
 
