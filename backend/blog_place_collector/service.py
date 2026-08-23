@@ -12,9 +12,11 @@ from blog_place_collector.clients.gemini import (
 from blog_place_collector.clients.kakao import get_area_anchor, get_business_hours, search_place
 from blog_place_collector.clients.naver import naver_blog_search, naver_local_search
 
-# 사용자가 직접 고르던 값들을 상수로 고정합니다. 대신 수집 페이지 수는 결과가
+# 사용자가 직접 고르던 값들을 상수로 고정합니다. 대신 수집 글 수는 결과가
 # 빈약하면(distinct 후보가 적거나 반복 언급이 없음) 자동으로 늘려서 재수집합니다.
-PAGE_TIERS = [5, 15, 30]
+# 공식 네이버 블로그 검색 API가 한 번에 최대 100개(display)를 주므로 100 단위로
+# 잡았습니다(1/2/3번 호출).
+COLLECTION_TIERS = [100, 200, 300]
 DEFAULT_RADIUS = 5000
 MAX_TOP_N = 30
 MIN_CANDIDATES = 10
@@ -66,9 +68,9 @@ def _is_scattered(candidates, regions):
 
 
 def _collect_candidates(keyword):
-    """PAGE_TIERS를 시도하며 상호명 후보를 수집·검증합니다. 마지막으로 수집한 posts와
-    감지된 지역도 함께 반환합니다 — 개요 전환이나 흩어짐 판단에 재수집/재호출 없이
-    그대로 재사용하기 위해서입니다.
+    """COLLECTION_TIERS를 시도하며 상호명 후보를 수집·검증합니다. 마지막으로 수집한
+    posts와 감지된 지역도 함께 반환합니다 — 개요 전환이나 흩어짐 판단에 재수집/재호출
+    없이 그대로 재사용하기 위해서입니다.
 
     확신 후보(2회 이상 언급)가 최소 기준을 넘겨도, 직전 tier보다 여전히 늘고 있으면
     "더 넓은 지역일 수 있다"고 보고 계속 다음 tier로 진행합니다. 늘지 않거나(정체)
@@ -79,8 +81,8 @@ def _collect_candidates(keyword):
     post_count = 0
     regions = []
     previous_confirmed = 0
-    for max_pages in PAGE_TIERS:
-        posts = naver_blog_search(keyword=keyword, max_pages=max_pages)
+    for target_count in COLLECTION_TIERS:
+        posts = naver_blog_search(keyword=keyword, target_count=target_count)
         post_count = len(posts)
         if not posts:
             break

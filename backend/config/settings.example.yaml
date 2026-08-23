@@ -1,6 +1,6 @@
 search:
   keyword: ""
-  max_pages: 30
+  target_count: 300
   top_n: 10
   kakao_search_radius: 5000
 

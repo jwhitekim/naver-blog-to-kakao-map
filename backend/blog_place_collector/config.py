@@ -18,7 +18,7 @@ with _resolved_settings_path.open(encoding="utf-8") as f:
 
 _search_settings = _settings["search"]
 
-MAX_PAGES = _search_settings["max_pages"]
+TARGET_COUNT = _search_settings["target_count"]
 TOP_N = _search_settings["top_n"]
 KEYWORD = _search_settings["keyword"]
 AREA_KEYWORD = KEYWORD.split()[0] if KEYWORD.split() else ""

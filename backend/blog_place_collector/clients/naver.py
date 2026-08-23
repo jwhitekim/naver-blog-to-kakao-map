@@ -5,9 +5,9 @@ import requests
 
 from blog_place_collector.config import (
     KEYWORD,
-    MAX_PAGES,
     NAVER_BLOG_SEARCH_URL,
     NAVER_LOCAL_SEARCH_URL,
+    TARGET_COUNT,
     naver_open_api_headers,
 )
 
@@ -19,11 +19,8 @@ def _strip_tags(text):
     return html.unescape(re.sub(r"<[^>]+>", "", text))
 
 
-def naver_blog_search(keyword=KEYWORD, max_pages=MAX_PAGES):
-    """네이버 블로그 검색 공식 API로 글을 모읍니다. max_pages는 기존 비공식
-    엔드포인트 시절의 "페이지 수"(7개/페이지) 단위를 그대로 유지합니다 — 이 세션
-    내내 여러 임계값을 이 글 수 기준(35/105/210개)으로 실측 보정했기 때문입니다."""
-    target_count = max_pages * 7
+def naver_blog_search(keyword=KEYWORD, target_count=TARGET_COUNT):
+    """네이버 블로그 검색 공식 API로 글을 target_count개까지 모읍니다."""
     posts = []
     start = 1
 
