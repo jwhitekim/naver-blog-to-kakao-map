@@ -75,20 +75,28 @@ def _collect_candidates(keyword):
     확신 후보(2회 이상 언급)가 최소 기준을 넘겨도, 직전 tier보다 여전히 늘고 있으면
     "더 넓은 지역일 수 있다"고 보고 계속 다음 tier로 진행합니다. 늘지 않거나(정체)
     줄어들면 그 시점에서 멈춥니다 — 좁은 지역명은 tier 1에서 빨리 끝나고, 넓은
-    지역명은 신호가 계속 느는 동안 더 많은 글을 모으게 됩니다."""
+    지역명은 신호가 계속 느는 동안 더 많은 글을 모으게 됩니다.
+
+    네이버 블로그 검색은 sim 정렬이라 tier를 올려도 앞쪽 글 목록은 그대로이고 뒤에만
+    붙습니다(실측 확인). tier마다 전체 글을 다시 Gemini에 넣으면 이미 추출한 글을
+    반복 추출하게 되는데(실측: 상호명 추출이 전체 시간의 ~74%, 그중 절반이 재추출),
+    지역 추출은 키워드만 보므로 tier마다 다시 부를 이유가 없습니다. 그래서 지역은
+    한 번만 뽑고, 상호명 추출은 새로 늘어난 글에 대해서만 하고 누적합니다."""
     candidates = []
     posts = []
-    post_count = 0
-    regions = []
+    guesses = []
+    regions = extract_regions(keyword)
+    extracted_count = 0
     previous_confirmed = 0
     for target_count in COLLECTION_TIERS:
         posts = naver_blog_search(keyword=keyword, target_count=target_count)
-        post_count = len(posts)
         if not posts:
             break
 
-        regions = extract_regions(keyword)
-        guesses = extract_business_names(posts, keyword)
+        new_posts = posts[extracted_count:]
+        if new_posts:
+            guesses.extend(extract_business_names(new_posts, keyword))
+            extracted_count = len(posts)
         candidates = _verified_candidates(guesses, regions=regions, radius=DEFAULT_RADIUS)
 
         confirmed = sum(1 for c in candidates if c["mention_count"] >= MIN_REPEAT_MENTION)
@@ -96,7 +104,7 @@ def _collect_candidates(keyword):
             break
         previous_confirmed = confirmed
 
-    return post_count, posts, candidates, regions
+    return len(posts), posts, candidates, regions
 
 
 def _finalize_candidates(candidates):
