@@ -115,6 +115,31 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   margin-left: 2px;
 }
 
+/* 언어 토글: 박스 없이 글자만, 위계는 굵기·색으로만 표현 */
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.lang-toggle span {
+  color: var(--line-strong);
+  font-size: 11px;
+}
+.lang-toggle button {
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: .06em;
+  color: var(--muted);
+  padding: 2px 0;
+  transition: color .15s ease;
+}
+.lang-toggle button:hover { color: var(--ink-soft); }
+.lang-toggle button.active {
+  font-weight: 800;
+  color: var(--brand);
+}
+
 /* ---------- 히어로: 문장 속 빈칸 검색 ---------- */
 
 .hero {
