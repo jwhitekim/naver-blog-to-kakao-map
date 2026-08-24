@@ -16,6 +16,53 @@
 
   onDestroy(() => clearInterval(progressTimer));
 
+  function scrollReveal(node, options = {}) {
+    const { delay = 0, distance = 28 } = options;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    node.classList.add('scroll-reveal');
+    node.style.setProperty('--reveal-delay', `${delay}ms`);
+    node.style.setProperty('--reveal-offset', `${distance}px`);
+
+    if (reduceMotion.matches || !('IntersectionObserver' in window)) {
+      node.classList.add('is-visible');
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.16) {
+          node.classList.add('is-visible');
+          return;
+        }
+
+        if (!entry.isIntersecting) {
+          const rootTop = entry.rootBounds?.top ?? 0;
+          const rootBottom = entry.rootBounds?.bottom ?? window.innerHeight;
+          const exitedAbove = entry.boundingClientRect.bottom <= rootTop;
+          const exitedBelow = entry.boundingClientRect.top >= rootBottom;
+
+          if (exitedAbove || exitedBelow) {
+            node.style.setProperty(
+              '--reveal-offset',
+              `${exitedAbove ? -distance : distance}px`
+            );
+            node.classList.remove('is-visible');
+          }
+        }
+      },
+      { threshold: [0, 0.16] }
+    );
+
+    observer.observe(node);
+
+    return {
+      destroy() {
+        observer.disconnect();
+      }
+    };
+  }
+
   async function parseResponse(response) {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -100,14 +147,14 @@
 
 <main class="sheet">
   <section class="hero">
-    <p class="hero-kicker">{$t.heroKicker}</p>
-    <h1 class="hero-sentence">
-      <form on:submit|preventDefault={search}>
+    <p class="hero-kicker" use:scrollReveal>{$t.heroKicker}</p>
+    <div class="hero-sentence" use:scrollReveal={{ delay: 70 }}>
+      <h1 class="hero-sentence-tail">{$t.heroTail}</h1>
+      <form class="hero-search" on:submit|preventDefault={search}>
         <input
           class="keyword-input"
           bind:value={keyword}
           maxlength="80"
-          placeholder="성수동 브런치"
           aria-label={$t.keywordAria}
         />
         <button class="submit-arrow" type="submit" disabled={loading || !keyword.trim()} aria-label={$t.submitAria}>
@@ -118,24 +165,26 @@
           {/if}
         </button>
       </form>
-      <span class="hero-sentence-tail">{$t.heroTail}</span>
-    </h1>
+    </div>
 
-    <div class="hero-examples">
+    <div class="hero-examples" use:scrollReveal={{ delay: 140 }}>
       <span>{$t.examplesLabel}</span>
       {#each searchExamples as example}
         <button type="button" on:click={() => (keyword = example)}>{example}</button>
       {/each}
     </div>
 
-    <div class="hero-stamp-row">
-      <div class="hero-stamp" aria-hidden="true"><b>33</b><span>{$t.stampLabel}</span></div>
+    <div class="hero-stamp-row" use:scrollReveal={{ delay: 210 }}>
+      <div class="hero-stamp-wrap" aria-hidden="true">
+        <div class="hero-stamp"><b>33</b><span>{$t.stampLabel}</span></div>
+        <span class="stamp-example">{$t.stampExample}</span>
+      </div>
       <p class="hero-stamp-caption">{@html $t.heroCaption}</p>
     </div>
   </section>
 
   {#if loading}
-    <div class="status-line rule" aria-live="polite">
+    <div class="status-line rule" aria-live="polite" use:scrollReveal>
       <span class="caret" aria-hidden="true"></span>
       <span>{$t.progress[progressIndex]}</span>
       <span class="status-note">{$t.statusNote}</span>
@@ -143,7 +192,7 @@
   {/if}
 
   {#if error}
-    <div class="alert" role="alert">
+    <div class="alert" role="alert" use:scrollReveal>
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg>
       <div><strong>{$t.alertTitle}</strong><span>{error}</span></div>
       <button type="button" on:click={() => (error = '')} aria-label={$t.alertClose}>×</button>
@@ -152,22 +201,22 @@
 
   {#if overviewResult}
     <section aria-labelledby="overview-results-title">
-      <div class="section-heading rule">
+      <div class="section-heading rule" use:scrollReveal>
         <span class="section-eyebrow">Area Overview</span>
         <h2 id="overview-results-title">{$t.overviewTitle}</h2>
         <p>{$t.overviewSummary(overviewResult.post_count, overviewResult.regions.length)}</p>
       </div>
 
       {#if overviewResult.regions.length === 0}
-        <div class="empty-state">
+        <div class="empty-state" use:scrollReveal>
           <span>{$t.emptyGlyph}</span>
           <h3>{$t.overviewEmptyTitle}</h3>
           <p>{$t.emptyDesc}</p>
         </div>
       {:else}
         <div class="region-list">
-          {#each overviewResult.regions as region}
-            <article class="region-row">
+          {#each overviewResult.regions as region, index}
+            <article class="region-row" use:scrollReveal={{ delay: Math.min(index * 70, 280) }}>
               <div class="region-title-line">
                 <h3>{region.name}</h3>
                 <span class="region-mentions">{$t.regionMentions(region.mention_count)}</span>
@@ -193,14 +242,14 @@
 
   {#if result}
     <section aria-labelledby="results-title">
-      <div class="section-heading rule">
+      <div class="section-heading rule" use:scrollReveal>
         <span class="section-eyebrow">Your Picks</span>
         <h2 id="results-title">{$t.picksTitle}</h2>
         <p>{$t.picksSummary(result.post_count, result.candidates.length)}</p>
       </div>
 
       {#if result.candidates.length === 0}
-        <div class="empty-state">
+        <div class="empty-state" use:scrollReveal>
           <span>{$t.emptyGlyph}</span>
           <h3>{$t.picksEmptyTitle}</h3>
           <p>{$t.emptyDesc}</p>
@@ -208,7 +257,11 @@
       {:else}
         <div class="ledger">
           {#each result.candidates as candidate, index}
-            <article class:unmatched={!candidate.place} class="ledger-row">
+            <article
+              class:unmatched={!candidate.place}
+              class="ledger-row"
+              use:scrollReveal={{ delay: Math.min(index * 70, 280) }}
+            >
               <span class="row-rank">{String(index + 1).padStart(2, '0')}</span>
 
               <div class="row-main">
@@ -239,7 +292,10 @@
                 <div class="row-footer">
                   {#if candidate.sources.length}
                     <details>
-                      <summary>{$t.sourcesSummary(candidate.sources.length)}</summary>
+                      <summary>
+                        <span>{$t.sourcesSummary(candidate.sources.length)}</span>
+                        <svg class="summary-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                      </summary>
                       <div class="sources">
                         {#each candidate.sources as source}
                           <a href={source.url} target="_blank" rel="noreferrer">
@@ -279,22 +335,22 @@
 
   {#if !result && !overviewResult && !loading}
     <section>
-      <div class="section-heading rule">
+      <div class="section-heading rule" use:scrollReveal>
         <span class="section-eyebrow">How it works</span>
         <h2>{$t.howTitle}</h2>
       </div>
       <div class="process-line">
-        <article class="process-step">
+        <article class="process-step" use:scrollReveal>
           <span class="step-num" aria-hidden="true">01</span>
           <h3>{$t.step1Title}</h3>
           <p>{$t.step1Desc}</p>
         </article>
-        <article class="process-step">
+        <article class="process-step" use:scrollReveal={{ delay: 90 }}>
           <span class="step-num" aria-hidden="true">02</span>
           <h3>{$t.step2Title}</h3>
           <p>{$t.step2Desc}</p>
         </article>
-        <article class="process-step">
+        <article class="process-step" use:scrollReveal={{ delay: 180 }}>
           <span class="step-num" aria-hidden="true">03</span>
           <h3>{$t.step3Title}</h3>
           <p>{$t.step3Desc}</p>
@@ -304,8 +360,8 @@
   {/if}
 </main>
 
-<footer class="sheet">
-  <a class="brand" href="/">
+<footer class="sheet" use:scrollReveal>
+  <a class="brand" href="/" aria-label={$t.brandHomeAria}>
     <span class="brand-copy"><strong>Placepick</strong></span>
   </a>
   <p>{$t.footerTagline}</p>

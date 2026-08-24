@@ -35,6 +35,7 @@ const dict = {
     submitAria: '장소 찾기',
     examplesLabel: '이렇게 검색해 보세요',
     stampLabel: '언급',
+    stampExample: '예시',
     heroCaption:
       '별점이 아니라 <strong>언급 횟수</strong>예요. 블로거 여러 명이 같은 곳을 따로따로 짚었을 때만, 도장을 찍어 확실한 후보로 올려드려요.',
 
@@ -96,6 +97,7 @@ const dict = {
     submitAria: 'Find places',
     examplesLabel: 'Try searching like this',
     stampLabel: 'mentions',
+    stampExample: 'example',
     heroCaption:
       "It's not a star rating — it's the <strong>number of mentions</strong>. Only when several bloggers point to the same place on their own do we stamp it as a solid pick.",
 

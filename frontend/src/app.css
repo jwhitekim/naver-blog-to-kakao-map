@@ -2,8 +2,8 @@
   --paper: #E8EAE0;
   --ink: #1F2A24;
   --ink-soft: #3C463F;
-  --muted: #757F70;
-  --muted-light: #A0A791;
+  --muted: #596458;
+  --muted-light: #626C60;
   --line: #C7CBB8;
   --line-strong: #AFB496;
   --brand: #A23B2E;
@@ -26,8 +26,8 @@
     --paper: #171B14;
     --ink: #E5E8D9;
     --ink-soft: #C7CDB6;
-    --muted: #8B9280;
-    --muted-light: #5F6656;
+    --muted: #AAB49E;
+    --muted-light: #9BA58F;
     --line: #333A2B;
     --line-strong: #454D39;
     --brand: #E0715C;
@@ -46,6 +46,11 @@ body {
   font-weight: 400;
   word-break: keep-all;
 }
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 button, input, select { font: inherit; color: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; background: none; border: none; padding: 0; }
@@ -62,11 +67,41 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 }
 
+/* ---------- 스크롤 재진입 애니메이션 ---------- */
+
+.scroll-reveal {
+  opacity: 0;
+  transform: translate3d(0, var(--reveal-offset, 28px), 0);
+  transition:
+    opacity .58s ease,
+    transform .7s cubic-bezier(.22, 1, .36, 1);
+  transition-delay: 0ms;
+}
+.scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal,
+  .scroll-reveal.is-visible {
+    opacity: 1;
+    transform: none;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* ---------- 페이지 골격: 한 장의 종이, 섹션은 헤어라인으로만 구분 ---------- */
 
 .sheet {
   width: min(100% - 40px, 900px);
   margin: 0 auto;
+}
+main.sheet {
+  flex: 1 0 auto;
+  min-width: 0;
 }
 
 .rule {
@@ -85,6 +120,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 20px;
 }
 .brand {
   display: inline-flex;
@@ -92,6 +128,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   gap: 8px;
   text-decoration: none;
   color: var(--ink);
+}
+.topbar > .brand {
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
 }
 .brand-mark { display: none; }
 .brand-copy strong {
@@ -119,7 +160,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .lang-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
+  flex: none;
   font-variant-numeric: tabular-nums;
 }
 .lang-toggle span {
@@ -131,7 +173,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   font-size: 12px;
   letter-spacing: .06em;
   color: var(--muted);
-  padding: 2px 0;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: color .15s ease;
 }
 .lang-toggle button:hover { color: var(--ink-soft); }
@@ -153,6 +199,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   margin: 0 0 18px;
 }
 .hero-sentence {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 10px;
   font-weight: 700;
   font-size: clamp(28px, 4.6vw, 46px);
   line-height: 1.32;
@@ -160,11 +210,18 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   margin: 0;
   color: var(--ink);
 }
-.hero-sentence form {
-  display: inline;
+.hero-search {
+  display: inline-flex;
+  align-items: flex-end;
+  min-width: 0;
+  order: -1;
 }
 .hero-sentence-tail {
   white-space: nowrap;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  margin: 0;
 }
 .keyword-input {
   font: inherit;
@@ -182,22 +239,33 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .keyword-input:focus { outline: none; border-bottom-color: var(--brand); }
 
 .submit-arrow {
+  --submit-visual-size: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  position: relative;
+  width: 44px;
+  height: 44px;
+  color: var(--brand);
+  margin: 0 0 -7px 4px;
+  transition: color .15s ease;
+}
+.submit-arrow::before {
+  content: "";
+  position: absolute;
+  width: var(--submit-visual-size);
+  height: var(--submit-visual-size);
   border-radius: 50%;
   border: 1.5px solid var(--brand);
-  color: var(--brand);
-  vertical-align: -9px;
-  margin-left: 8px;
-  transition: background .15s ease, color .15s ease;
+  transition: background .15s ease;
 }
-.submit-arrow:hover:not(:disabled) { background: var(--brand); color: var(--paper); }
+.submit-arrow:hover:not(:disabled) { color: var(--paper); }
+.submit-arrow:hover:not(:disabled)::before { background: var(--brand); }
 .submit-arrow:disabled { opacity: .35; cursor: default; }
-.submit-arrow svg { width: 16px; height: 16px; }
+.submit-arrow svg { position: relative; z-index: 1; width: 16px; height: 16px; }
 .submit-arrow .spinner {
+  position: relative;
+  z-index: 1;
   width: 13px; height: 13px;
   border-radius: 50%;
   border: 2px solid currentColor;
@@ -220,7 +288,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   text-decoration: underline;
   text-decoration-color: var(--line-strong);
   text-underline-offset: 3px;
-  padding: 2px 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 .hero-examples button:hover { color: var(--brand); text-decoration-color: var(--brand); }
 
@@ -230,8 +300,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   align-items: center;
   gap: 28px;
 }
-.hero-stamp {
+.hero-stamp-wrap {
   flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+}
+.hero-stamp {
   width: 108px;
   height: 108px;
   border-radius: 50%;
@@ -246,6 +322,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   transform: rotate(-8deg);
   font-variant-numeric: tabular-nums;
 }
+.stamp-example {
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
 .hero-stamp b {
   font-weight: 800;
   font-size: 30px;
@@ -259,6 +342,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   margin-top: 4px;
 }
 .hero-stamp-caption {
+  margin: 0;
   font-size: 14.5px;
   color: var(--ink-soft);
   max-width: 30em;
@@ -310,7 +394,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .alert svg { flex: none; width: 18px; height: 18px; margin-top: 2px; }
 .alert div { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
 .alert strong { color: var(--ink); }
-.alert button { color: var(--muted); font-size: 18px; line-height: 1; padding: 2px; }
+.alert button {
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: -11px 0;
+}
 
 /* ---------- 섹션 헤딩(공통) ---------- */
 
@@ -413,6 +507,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .row-footer summary {
   cursor: pointer;
   color: var(--ink-soft);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   text-decoration: underline;
   text-decoration-color: var(--line-strong);
   text-underline-offset: 3px;
@@ -420,6 +518,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 .row-footer summary::-webkit-details-marker { display: none; }
 .row-footer summary:hover { color: var(--brand); text-decoration-color: var(--brand); }
+.summary-chevron {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  transition: transform .15s ease;
+}
+.row-footer details[open] .summary-chevron { transform: rotate(90deg); }
 
 .sources {
   margin-top: 10px;
@@ -434,6 +539,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   font-size: 12.5px;
   color: var(--ink-soft);
   text-decoration: none;
+  min-height: 44px;
   padding: 4px 0;
   border-bottom: 1px dotted var(--line-strong);
 }
@@ -464,7 +570,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   font-size: 11.5px;
   letter-spacing: .02em;
   text-decoration: none;
-  padding-bottom: 2px;
+  min-height: 44px;
+  padding: 0 2px;
   border-bottom: 1.5px solid transparent;
 }
 .map-link .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
@@ -552,7 +659,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .category-tab {
   font-size: 13.5px;
   color: var(--ink-soft);
-  padding-bottom: 3px;
+  min-height: 44px;
+  padding: 0 2px;
   border-bottom: 1.5px solid var(--line-strong);
   display: inline-flex;
   align-items: baseline;
@@ -615,6 +723,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 /* ---------- 푸터 ---------- */
 
 footer {
+  flex: none;
   border-top: 1px solid var(--line);
   padding: 28px 0 40px;
   display: flex;
@@ -622,6 +731,10 @@ footer {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+footer .brand {
+  min-height: 44px;
+  align-items: center;
 }
 footer .brand strong { font-size: 15px; }
 footer p {
@@ -633,15 +746,19 @@ footer p {
 /* ---------- 반응형 ---------- */
 
 @media (max-width: 720px) {
-  .topbar { height: 56px; }
+  .topbar { height: 56px; gap: 8px; }
+  .topbar .brand-copy small { display: none; }
   .hero { padding: 48px 0 32px; }
   .hero-sentence { font-size: clamp(21px, 6.4vw, 27px); line-height: 1.45; }
+  .hero-search { max-width: 100%; }
   .keyword-input { width: min(100%, 220px); }
-  .submit-arrow { width: 29px; height: 29px; vertical-align: -7px; }
+  .submit-arrow { --submit-visual-size: 29px; margin-bottom: -7px; }
   .submit-arrow svg { width: 14px; height: 14px; }
   .hero-stamp-row { flex-direction: column; align-items: flex-start; gap: 18px; margin-top: 40px; }
-  .ledger-row { grid-template-columns: 28px 1fr; }
-  .row-stamp { grid-column: 2; justify-self: start; margin-top: 10px; }
+  .ledger-row { grid-template-columns: 24px minmax(0, 1fr) 48px; gap: 4px 10px; }
+  .row-stamp { grid-column: 3; width: 46px; height: 46px; margin-top: 2px; }
+  .row-stamp b { font-size: 15px; }
+  .row-stamp span { font-size: 6px; }
   .row-rank { padding-top: 4px; }
   .process-line { grid-template-columns: 1fr; gap: 26px; }
   .process-line::before { display: none; }
