@@ -5,6 +5,7 @@ import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -80,6 +81,11 @@ async def search(payload: PreviewRequest):
 # API 라우트를 먼저 등록한 뒤 Svelte 빌드 결과를 루트 경로에서 제공합니다.
 frontend_dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
+
+    @app.get("/search", include_in_schema=False)
+    async def search_page():
+        return FileResponse(frontend_dist / "index.html")
+
     app.mount(
         "/",
         StaticFiles(directory=str(frontend_dist), html=True),

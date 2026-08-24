@@ -29,6 +29,13 @@ class ApiTestCase(unittest.TestCase):
         self.assertIn("Placepick", response.text)
         self.assertIn('src="/assets/', response.text)
 
+    def test_search_page_is_served_from_backend(self):
+        response = self.client.get("/search")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Placepick", response.text)
+        self.assertIn('src="/assets/', response.text)
+
     @patch("blog_place_collector.api.preview_collection")
     def test_preview_returns_candidates(self, preview_collection):
         preview_collection.return_value = {
