@@ -22,7 +22,7 @@ TARGET_COUNT = _search_settings["target_count"]
 KAKAO_SEARCH_RADIUS = _search_settings["kakao_search_radius"]
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = "gemini-3.8-flash"
 GEMINI_API_URL = (
     f"https://generativelanguage.googleapis.com/v1beta/models/"
     f"{GEMINI_MODEL}:generateContent"
